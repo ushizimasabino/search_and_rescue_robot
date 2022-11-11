@@ -25,7 +25,7 @@ float maxArea = 315;
 uint16_t blocks;
 
 // Prox Sensor Pins
-const int proxFrontPin = A0;  
+const int proxFrontPin = A3;  
 const int proxLeftPin = A1;  
 const int proxRightPin = A2;  
 // Prox Sensor Values
@@ -35,8 +35,8 @@ int proxRight;
 int proxDiff;
 
 // CALIBRATE
-float deadZone = 10;
-int fast = 120, slow = 80, neutral = 1500;
+float deadZone = .3;
+int fast = -150, slow = -80, neutral = 1500, doublefast = -200;
 
 //**************************************************************
 //*****************  Setup  ************************************
@@ -50,10 +50,14 @@ void setup() {
   pinMode(6, INPUT); //I connected this to Chan5 of the Receiver
   pinMode(5, INPUT); //I connected this to Chan6 of the Receiver
   pinMode(LED, OUTPUT);//Onboard LED to output for diagnostics
+
+  pinMode(proxFrontPin,INPUT);
+  pinMode(proxLeftPin,INPUT);
+  pinMode(proxRightPin,INPUT);
   
 // Attach Speed controller that acts like a servo to the board
-  R_Servo.attach(3);
-  L_Servo.attach(A5);
+  R_Servo.attach(A5);
+  L_Servo.attach(3);
   rSpeed = neutral - slow;
   lSpeed = neutral + slow;
   
@@ -76,8 +80,8 @@ void loop()
 {
   //  TestWheels();
   //  fowardSlow();
-  //  DriveServosRC(); // Drive Motors under RC control
-  Ch5Check(); // brightens and darkens 2 LEDs with proportional stick control
+  // DriveServosRC(); // Drive Motors under RC control
+  Ch5Check();
   // PrintRC(); //Print Values for RC Mode
 }
 
@@ -100,127 +104,121 @@ void Ch5Check() {
   }
 }
 
-//**********************  autoMode()  **************************
-//********************** Autonomous Mode   **********************
+// ============================================================================
+// ============================= AUTONOMOUS MODE ==============================
+// ============================================================================
+
+//**************************  autonomous()  **********************
+//********************** Autonomous Mode ***********************
 //**************************************************************
 void autonomous() {
   driveDx();
   centerTot();
+  printSensors();
   // Serial.println("dddd");
   Ch5Check();
 }
 
-//**********************  Pixy Tracking  **************************
-//********************** Autonomous Mode   **********************
+//**********************  Pixy Tracking  ***********************
 //**************************************************************
 // Tracking Regime
 float pixyTrack() {
-  Serial.println("dx2");
-    static int i = 0;
-    int j;
-    char buf[32];
-    // grab blocks!
-    blocks = 0;
-    blocks = pixy.ccc.getBlocks();
+  // Serial.println("dx2");
+  // static int i = 0;
+  // int j;
+  char buf[32];
+  // grab blocks!
+  blocks = 0;
+  blocks = pixy.ccc.getBlocks();
 
-    // Get Height & Width of Blocks
-    if (blocks)
-    {
-      signature = pixy.ccc.blocks[0].m_signature;
-      height = pixy.ccc.blocks[0].m_height;
-      width = pixy.ccc.blocks[0].m_width;
-      x = pixy.ccc.blocks[0].m_x;
-      y = pixy.ccc.blocks[0].m_y;
-      cx = (x + (width / 2));
-      cy = (x + (width / 2));
-      cx = mapfloat(cx, 0, 320, -1, 1);
-      cy = mapfloat(cy, 0, 200, 1, -1);
-      area = width * height;
-    }
+  // Get Height & Width of Blocks
+  if (blocks)
+  {
+    signature = pixy.ccc.blocks[0].m_signature;
+    height = pixy.ccc.blocks[0].m_height;
+    width = pixy.ccc.blocks[0].m_width;
+    x = pixy.ccc.blocks[0].m_x;
+    // y = pixy.ccc.blocks[0].m_y;
+    cx = (x + (width / 2));
+    // cy = (x + (width / 2));
+    cx = mapfloat(cx, 0, 316, -1, 1);
+    // cy = mapfloat(cy, 0, 200, 1, -1);
+    // area = width * height;
+  }
   else {
     cont += 1;
     if (cont == 100) {
-      Serial.println("dx3");
+      // Serial.println("dx3");
       cont = 0;
       cx = 0;
     }
     }
-    Serial.print("cx = ");
-    Serial.println(cx);
     return cx;
 }
 
 void driveDx()
 {
   float dx = pixyTrack();
+  
   // Serial.println(dx);
   if (dx > -deadZone && dx < deadZone){
-    Forward(1);
+    Forward(10);
   }
-
-  if (dx < 0) {
-    rSpeed = rSpeed - 5;
-    setLimits();
-    TLeftSlow(rSpeed,1);
+  if (dx <= -deadZone) {
+    TLeftSlow(10);
   }
-  else if (dx > 0) {
-    lSpeed = lSpeed + 5;
-    setLimits();
-    TLeftSlow(lSpeed,1);
+  else if (dx >= deadZone) {
+    TRightSlow(10);
   }
+  // Serial.print("rSpeed =");
+  // Serial.println(abs(rSpeed-1500));
+  // Serial.print("lSpeed =");
+  // Serial.println(abs(lSpeed-1500));
 }
 
 float mapfloat(long x, long in_min, long in_max, long out_min, long out_max){
   return (float)(x-in_min)*(out_max - out_min) / (float)(in_max-in_min) + out_min;
 }
 
-// ******************** centerTot() ***************************
+// ******************** centerTot() ****************************
 // *********** use proximity sensors to center Tot *************
 // *************************************************************
 void centerTot()
 {
-  int front = analogRead(proxFrontPin);
-  int left = analogRead(proxLeftPin); 
-  int right = analogRead(proxRightPin);
+  proxFront = analogRead(proxFrontPin);
+  proxLeft = analogRead(proxLeftPin); 
+  proxRight = analogRead(proxRightPin);
   
   // take 5 samples and average
-  for (int i = 0; i <= 4; i++) {
-    front = front + analogRead(proxFrontPin);
-    left = left + analogRead(proxLeftPin);
-    right = right + analogRead(proxRightPin);
+  for (int i = 0; i <= 3; i++) {
+    proxFront = proxFront + analogRead(proxFrontPin);
+    proxLeft = proxLeft + analogRead(proxLeftPin);
+    proxRight = proxRight + analogRead(proxRightPin);
   }
-  front = front / 5;
-  left = left / 5;
-  right = right / 5;
-
-  proxFront = front;
-  proxDiff = left - right;
+  proxFront = proxFront / 5;
+  proxLeft = proxLeft / 5;
+  proxRight = proxRight / 5;
+  proxDiff = proxLeft - proxRight;
   // NOTE:
   // proxDiff == 0 , WE ARE CENTERED
   // proxDiff > 0, WE ARE BIASED LEFT >> GO RIGHT
   // proxDiff < 0, WE ARE BIASED RIGHT >> GO LEFT
-  // proxLeft = read[1];
-  // proxRight = read[2];
 
-  // EMERGENCY STOP
-  if (proxFront >= 400) { //changed from 500
-    stopBot(100);
-  }
-
-  // REALIGNMENT ALGORITHM
-  if (proxDiff >= -100 || proxDiff <= 100){
-    Forward(1);
-  }
-  else if (proxDiff > 100){
-    lSpeed = lSpeed + 5;
-    setLimits();
-    TRightSlow(lSpeed,1);
-  }
-  else if (proxDiff < -100){
-    rSpeed = rSpeed - 5;
-    setLimits();
-    TLeftSlow(rSpeed,1);
-  }
+  // // EMERGENCY STOP
+  // if (proxFront >= 300) { //changed from 500
+  //   Reverse(10);
+  //   TRightSlow(10);
+  // }
+  // // REALIGNMENT ALGORITHM
+  // if (proxDiff >= -100 || proxDiff <= 100){
+  //   Forward(10);
+  // }
+  // else if (proxDiff > 100){
+  //   TRightSlow(10);
+  // }
+  // else if (proxDiff < -100){
+  //   TLeftSlow(10);
+  // }
 }
 
 //********************** setLimits() ***************************
@@ -244,6 +242,22 @@ void setLimits() {
   pulseMotors();
 }
 
+//********************** autoLimits() ***************************
+void autoLimits() {
+  if (lSpeed < 1000) {// Can be set to a value you don't wish to exceed
+    lSpeed = 1000;    // to adjust maximums for your own robot
+  }
+  if (lSpeed > 2000) {// Can be set to a value you don't wish to exceed
+    lSpeed = 2000;    // to adjust maximums for your own robot
+  }
+  if (rSpeed < 1000) {// Can be set to a value you don't wish to exceed
+    rSpeed = 1000;    // to adjust maximums for your own robot
+  }
+  if (rSpeed > 2000) {// Can be set to a value you don't wish to exceed
+    rSpeed = 2000;    // to adjust maximums for your own robot
+  }
+}
+
 //*******************   pulseMotors  ***************************
 //pulses either mapped or direct signals generated from Mixlimits
 //**************************************************************
@@ -264,6 +278,10 @@ void pulseMotors() {
   //  PrintWheelCalcs(); //REMEMBER: printing values slows reaction times
 
 }
+
+// ============================================================================
+// =========================== MOVEMENT COMMANDS ==============================
+// ============================================================================
 
 //*******************  DriveServosRC()  ************************
 //******  Use the value collected from Ch1 and Ch2  ************
@@ -289,8 +307,8 @@ void DriveServosRC()
 //**************************************************************
 void Forward(int Dlay)
 {
-  R_Servo.writeMicroseconds(neutral-fast);  // sets the servo position
-  L_Servo.writeMicroseconds(neutral+fast);   // sets the servo position
+  R_Servo.writeMicroseconds(neutral-doublefast);  // sets the servo position
+  L_Servo.writeMicroseconds(neutral+doublefast);   // sets the servo position
   delay(Dlay);
 }
 //*****************  Reverse(int Dlay)   ***********************
@@ -314,21 +332,29 @@ void stopBot(int Dlay)
 //************* TLeftSlow(int rVal,int Dlay) *******************
 //        left turn with tapering speed and a duration
 //**************************************************************
-void TLeftSlow(int rVal, int Dlay)
+void TLeftSlow(int Dlay)
 {
-  R_Servo.writeMicroseconds(rVal);  // sets the servo position
-  L_Servo.writeMicroseconds(neutral+slow);   // sets the servo position
+  rSpeed = neutral-fast;
+  lSpeed = neutral+slow;
+  R_Servo.writeMicroseconds(rSpeed);  // sets the servo position
+  L_Servo.writeMicroseconds(lSpeed);   // sets the servo position
   delay(Dlay);
 }
 //************* TRightSlow(int lVal,int Dlay) *******************
 //        Right turn with tapering speed and a duration
 //**************************************************************
-void TRightSlow(int lVal, int Dlay)
+void TRightSlow(int Dlay)
 {
-  R_Servo.writeMicroseconds(neutral-slow);  // sets the servo position
-  L_Servo.writeMicroseconds(lVal);   // sets the servo position
+  rSpeed = neutral-slow;
+  lSpeed = neutral+fast;
+  R_Servo.writeMicroseconds(rSpeed);  // sets the servo position
+  L_Servo.writeMicroseconds(lSpeed);   // sets the servo position
   delay(Dlay);
 }
+
+// ============================================================================
+// =========================== RUN DIAGNOSTICS ================================
+// ============================================================================
 
 //**********************  PrintRC()  ***************************
 //***  Simply print the collected RC values for diagnostics  ***
@@ -357,17 +383,17 @@ void PrintRC()
 //**************************************************************
 void printSensors() {
   Serial.println("Front Prox Sensor Reads " + (String)proxFront);
-  // Serial.println("Left Prox Sensor Reads " + (String)proxLeft);
-  // Serial.println("Right Prox Sensor Reads " + (String)proxRight);
-  if (proxDiff == 0){
-    Serial.println("Centered");
-  }
-  else if (proxDiff > 0){
-    Serial.println("Biased to the Left");
-  }
-  else if (proxDiff < 0){
-    Serial.println("Biased to the Right");
-  }
-  Serial.println(" ");
-  delay(100);
+  Serial.println("Left Prox Sensor Reads " + (String)proxLeft);
+  Serial.println("Right Prox Sensor Reads " + (String)proxRight);
+  // if (proxDiff == 0){
+  //   Serial.println("Centered");
+  // }
+  // else if (proxDiff > 0){
+  //   Serial.println("Biased to the Left");
+  // }
+  // else if (proxDiff < 0){
+  //   Serial.println("Biased to the Right");
+  // }
+  Serial.println("cx = "+(String)cx);
+  delay(1000);
 }
