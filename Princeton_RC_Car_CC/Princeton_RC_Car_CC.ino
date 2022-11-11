@@ -180,16 +180,22 @@ float mapfloat(long x, long in_min, long in_max, long out_min, long out_max){
 // *************************************************************
 void centerTot()
 {
-  int read = [analogRead(proxFrontPin) analogRead(proxLeftPin) analogRead(proxRightPin)];
+  int front = analogRead(proxFrontPin);
+  int left = analogRead(proxLeftPin); 
+  int right = analogRead(proxRightPin);
   
   // take 5 samples and average
   for (int i = 0; i <= 4; i++) {
-    read = read + [analogRead(proxFrontPin) analogRead(proxLeftPin) analogRead(proxRightPin)];
+    front = front + analogRead(proxFrontPin);
+    left = left + analogRead(proxLeftPin);
+    right = right + analogRead(proxRightPin);
   }
-  read = read / 5;
+  front = front / 5;
+  left = left / 5;
+  right = right / 5;
 
-  proxFront = read[0];
-  proxDiff = read[1] - read[2];
+  proxFront = front;
+  proxDiff = left - right;
   // NOTE:
   // proxDiff == 0 , WE ARE CENTERED
   // proxDiff > 0, WE ARE BIASED LEFT >> GO RIGHT
@@ -204,7 +210,7 @@ void centerTot()
 
   // REALIGNMENT ALGORITHM
   if (proxDiff >= -100 || proxDiff <= 100){
-    Forward();
+    Forward(1);
   }
   else if (proxDiff > 100){
     lSpeed = lSpeed + 5;
@@ -218,12 +224,12 @@ void centerTot()
   }
 }
 
-//********************** MixLimits() ***************************
+//********************** setLimits() ***************************
 //*******  Make sure values never exceed ranges  ***************
 //******  For most all servos and like controlers  *************
 //****   control must fall between 1000uS and 2000uS  **********
 //**************************************************************
-void SetLimits() {
+void setLimits() {
   if (Lwheel < 1000) {// Can be set to a value you don't wish to exceed
     Lwheel = 1000;    // to adjust maximums for your own robot
   }
@@ -270,13 +276,13 @@ void DriveServosRC()
   if (Ch2 <= 1500) {
     Lwheel = Ch1 + Ch2 - 1500;
     Rwheel = Ch1 - Ch2 + 1500;
-    SetLimits();
+    setLimits();
   }
   if (Ch2 > 1500) {
     int Ch1_mod = map(Ch1, 1000, 2000, 2000, 1000); // Invert the Ch1 axis to keep the math similar
     Lwheel = Ch1_mod + Ch2 - 1500;
     Rwheel = Ch1_mod - Ch2 + 1500;
-    SetLimits();
+    setLimits();
   }
 }
 //*****************  Forward(int Dlay)   ***********************
@@ -355,13 +361,13 @@ void printSensors() {
   // Serial.println("Left Prox Sensor Reads " + (String)proxLeft);
   // Serial.println("Right Prox Sensor Reads " + (String)proxRight);
   if (proxDiff == 0){
-    Serial.println("Centered")
+    Serial.println("Centered");
   }
   else if (proxDiff > 0){
-    Serial.println("Biased to the Left")
+    Serial.println("Biased to the Left");
   }
   else if (proxDiff < 0){
-    Serial.println("Biased to the Right")
+    Serial.println("Biased to the Right");
   }
   Serial.println(" ");
   delay(100);
