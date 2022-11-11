@@ -53,7 +53,7 @@ void setup() {
   
 // Attach Speed controller that acts like a servo to the board
   R_Servo.attach(3);
-  L_Servo.attach(11);
+  L_Servo.attach(A5);
   rSpeed = neutral - slow;
   lSpeed = neutral + slow;
   
@@ -78,8 +78,7 @@ void loop()
   //  fowardSlow();
   //  DriveServosRC(); // Drive Motors under RC control
   Ch5Check(); // brightens and darkens 2 LEDs with proportional stick control
-  PrintRC(); //Print Values for RC Mode Diagnostics
-
+  // PrintRC(); //Print Values for RC Mode
 }
 
 //**********************  Ch5Check()  **************************
