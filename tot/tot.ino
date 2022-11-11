@@ -25,20 +25,58 @@ float cx, cy, area;
 float maxArea = 315;
 uint16_t blocks;
 
+// Prox Sensor Pins
+const int proxFrontPin = A0;  
+const int proxLeftPin = A1;  
+const int proxRightPin = A2;  
+// Prox Sensor Values
+int proxFront;
+int proxLeft;
+int proxRight;
+
+//**************************************************************
+//*****************  Setup  ************************************
+//**************************************************************
 void setup()
 {
 // Attach Speed controller that acts like a servo to the board  
-  R_Servo.attach(6); //Pin 1
-  L_Servo.attach(5); //Pin 0
+  R_Servo.attach(6); //Pin 6
+  L_Servo.attach(5); //Pin 5
   pixy.init();
  
   Serial.begin(9600);
   Serial.print("Starting...\n");
+
+  rSpeed = 1450;
+  lSpeed = 1620;
+
+  // Set the pins that the transmitter will be connected to all to input
+  pinMode(12, INPUT); //I connected this to Chan1 of the Receiver
+  pinMode(11, INPUT); //I connected this to Chan2 of the Receiver
+  pinMode(10, INPUT); //I connected this to Chan3 of the Receiver
+  pinMode(9, INPUT); //I connected this to Chan4 of the Receiver
+  pinMode(8, INPUT); //I connected this to Chan5 of the Receiver
+  pinMode(7, INPUT); //I connected this to Chan6 of the Receiver
+  pinMode(LED, OUTPUT); //Onboard LED to output for diagnostics
 }
 
+//************************  loop()  ****************************
+//**********************  Main Loop  ***************************
+//**************************************************************
 void loop() {
   // put your main code here, to run repeatedly:
+
+  Ch1 = pulseIn(7, HIGH, 21000); // LEFT OR RIGHT
+  Ch2 = pulseIn(8, HIGH, 21000); // FWD OR BACK
+  Ch3 = pulseIn(9, HIGH, 21000);  // NOTHING
+  Ch4 = pulseIn(10, HIGH, 21000);  // NOTHING
+  Ch5 = pulseIn(11, HIGH, 21000); // AUTO / NO AUTO
+  Ch6 = pulseIn(12, HIGH, 21000); // NOTHING
+
+  DriveServosRC(); // Drive Motors under RC control
+
   Ch5Check();
+  // PrintRC(); // Print Values for RC Mode Diagnostics
 }
 
 // Determines whether or not in Auto mode
@@ -47,8 +85,7 @@ void Ch5Check() {
 
   if (Ch5 > 1600) {
     digitalWrite(LED, HIGH);
-    Serial.println("Naenae2");
-    //autonomous();
+    autonomous();
   }
   else {
     Ch1 = pulseIn(7, HIGH, 21000); // Capture pulse width on Channel 1
@@ -57,27 +94,25 @@ void Ch5Check() {
     Ch4 = pulseIn(10, HIGH, 21000);  // Capture pulse width on Channel 4
     digitalWrite(LED, LOW);
     DriveServosRC();
-    Serial.println("fuck");
-    PrintRC();
+    // Serial.println("fuck");
   }
 }
 
+//*******************  DriveServosRC()  ************************
+//******  Use the value collected from Ch1 and Ch2  ************
+//******  on the joystick to relatively calculate  *************
+//****  speed and direction of two servo driven wheels *********
+//**************************************************************
 void DriveServosRC()
 {
-  if (Ch3 <= 1500) {
-    Lwheel = Ch1 + Ch3 - 1500;
-    Rwheel = Ch1 - Ch3 + 1500;
-    SetLimits();
-  }
-  if (Ch3 > 1500) {
-    int Ch1_mod = map(Ch1, 1000, 2000, 2000, 1000); // Invert the Ch1 axis to keep the math similar
-    Lwheel = Ch1_mod + Ch3 - 1500;
-    Rwheel = Ch1_mod - Ch3 + 1500;
+  if (Ch2 <= 1500) {
+    Lwheel = Ch1 + Ch2 - 1500;
+    Rwheel = Ch1 - Ch2 + 1500;
     SetLimits();
   }
 }
 
-//********************** MixLimits() ***************************
+//********************** SetLimits() ***************************
 //*******  Make sure values never exceed ranges  ***************
 //******  For most all servos and like controlers  *************
 //****   control must fall between 1000uS and 2000uS  **********
@@ -115,17 +150,17 @@ void pulseMotors() {
   L_Servo.writeMicroseconds(Lwheel);
 
   // un-comment this line do display the value being sent to the motors
-  //  PrintWheelCalcs(); //REMEMBER: printing values slows reaction times
+  // PrintWheelCalcs(); //REMEMBER: printing values slows reaction times
 
 }
 
-//**********************  autoMode()  **************************
+//**********************  autoMode()  ***************************
 //********************** Autonomous Mode   **********************
-//**************************************************************
+//***************************************************************
 void autonomous() {
-  Serial.println("Naenae");
   driveDx();
- 
+// IRIS IS WORKING ON THIS RIGHT NOW -- PLEASE AVOID
+
 }
 
 void driveDx()
@@ -194,7 +229,18 @@ void driveDx()
     return (float)(x-in_min)*(out_max - out_min) / (float)(in_max-in_min) + out_min;
   }
 
-  //**********************  PrintRC()  ***************************
+//******************** printSensors() **************************
+// Print the prox sensor values ***** Slows robot when in use!!!
+//**************************************************************
+void printSensors() {
+  Serial.println("Front Prox Sensor Reads " + (String)proxFront);
+  Serial.println("Left Prox Sensor Reads " + (String)proxLeft);
+  Serial.println("Right Prox Sensor Reads " + (String)proxRight);
+  Serial.println(" ");
+  delay(100);
+}
+
+//**********************  PrintRC()  ***************************
 //***  Simply print the collected RC values for diagnostics  ***
 //**************************************************************
 void PrintRC()
@@ -214,4 +260,54 @@ void PrintRC()
   Serial.println(Ch6);
   Serial.println(" ");
   delay(1000);
+}
+
+// =============================================================
+// ====================== MOVEMENT COMMANDS ====================
+// =============================================================
+
+//*****************  Forward(int Dlay)   ***********************
+//              Move the robot Slowly Forward
+//**************************************************************
+void Forward(int Dlay)
+{
+  R_Servo.writeMicroseconds(1450);  // sets the servo position
+  L_Servo.writeMicroseconds(1620);   // sets the servo position
+  delay(Dlay);
+}
+//*****************  Reverse(int Dlay)   ***********************
+//                   Reverse the robot
+//**************************************************************
+void Reverse(int Dlay)
+{
+  R_Servo.writeMicroseconds(2000);  // sets the servo position
+  L_Servo.writeMicroseconds(1000);   // sets the servo position
+  delay(Dlay);
+}
+//*****************  stopBot(int Dlay)   ***********************
+//                    Stop the robot
+//**************************************************************
+void stopBot(int Dlay)
+{
+  R_Servo.writeMicroseconds(1500);  // sets the servo position
+  L_Servo.writeMicroseconds(1500);   // sets the servo position
+  delay(Dlay);
+}
+//************* TLeftSlow(int rVal,int Dlay) *******************
+//        left turn with tapering speed and a duration
+//**************************************************************
+void TLeftSlow(int rVal, int Dlay)
+{
+  R_Servo.writeMicroseconds(rVal);  // sets the servo position
+  L_Servo.writeMicroseconds(1600);   // sets the servo position
+  delay(Dlay);
+}
+//************* TRightSlow(int lVal,int Dlay) *******************
+//        Right turn with tapering speed and a duration
+//**************************************************************
+void TRightSlow(int lVal, int Dlay)
+{
+  R_Servo.writeMicroseconds(1450);  // sets the servo position
+  L_Servo.writeMicroseconds(lVal);   // sets the servo position
+  delay(Dlay);
 }
