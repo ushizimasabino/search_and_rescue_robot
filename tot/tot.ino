@@ -11,7 +11,7 @@ int LeftMaxIn;        //Variable to hold Max Data In
 int RightMaxIn;      //Variable to hold Max Data In
 int CalcHold;        //Variable to remp hold calculations for steering stick corections
 int rSpeed, lSpeed;       // Variables to hold autonomous speed changes for each wheel
-float deadZone = 0;
+float deadZone = 10;
 
 // Define RC Variables
 int Ch1,Ch2,Ch3,Ch4,Ch5,Ch6;
@@ -33,6 +33,10 @@ const int proxRightPin = A2;
 int proxFront;
 int proxLeft;
 int proxRight;
+int proxDiff;
+
+// CALIBRATE
+int fast = 120, slow = 80, neutral = 1500;
 
 //**************************************************************
 //*****************  Setup  ************************************
@@ -47,8 +51,8 @@ void setup()
   Serial.begin(9600);
   Serial.print("Starting...\n");
 
-  rSpeed = 1450;
-  lSpeed = 1620;
+  rSpeed = neutral - slow;
+  lSpeed = neutral + slow;
 
   // Set the pins that the transmitter will be connected to all to input
   pinMode(12, INPUT); //I connected this to Chan1 of the Receiver
@@ -74,7 +78,6 @@ void loop() {
   Ch6 = pulseIn(12, HIGH, 21000); // NOTHING
 
   DriveServosRC(); // Drive Motors under RC control
-
   Ch5Check();
   // PrintRC(); // Print Values for RC Mode Diagnostics
 }
@@ -159,25 +162,25 @@ void pulseMotors() {
 //***************************************************************
 void autonomous() {
   driveDx();
-// IRIS IS WORKING ON THIS RIGHT NOW -- PLEASE AVOID
-
+  centerTot();
 }
 
 void driveDx()
 {
   float dx = pixyTrack();
-  Serial.println(dx);
+  // Serial.println(dx);
   if (dx > -deadZone && dx < deadZone){
-    // no turn
+    Forward(1);
   }
-
-  if (dx < 0) {
-    R_Servo.writeMicroseconds(2000);
-    L_Servo.writeMicroseconds(2000);
+  if (dx < 0) { // LIGHT TO THE LEFT? GO LEFT
+    rSpeed = rSpeed - 5;
+    setLimits();
+    TLeftSlow(rSpeed,1);
   }
-  else if (dx > 0) {
-    R_Servo.writeMicroseconds(1000);
-    L_Servo.writeMicroseconds(1000);
+  else if (dx > 0) { // LIGHT TO THE RIGHT? GO RIGHT
+    lSpeed = lSpeed + 5;
+    setLimits();
+    TLeftSlow(lSpeed,1);
   }
 }
 
@@ -229,13 +232,65 @@ void driveDx()
     return (float)(x-in_min)*(out_max - out_min) / (float)(in_max-in_min) + out_min;
   }
 
+// ******************** centerTot() ***************************
+// *********** use proximity sensors to center Tot *************
+// *************************************************************
+void centerTot()
+{
+  int read = [analogRead(proxFrontPin) analogRead(proxLeftPin) analogRead(proxRightPin)];
+  
+  // take 5 samples and average
+  for (int i = 0; i <= 4; i++) {
+    read = read + [analogRead(proxFrontPin) analogRead(proxLeftPin) analogRead(proxRightPin)];
+  }
+  read = read / 5;
+
+  proxFront = read[0];
+  proxDiff = read[1] - read[2];
+  // NOTE:
+  // proxDiff == 0 , WE ARE CENTERED
+  // proxDiff > 0, WE ARE BIASED LEFT >> GO RIGHT
+  // proxDiff < 0, WE ARE BIASED RIGHT >> GO LEFT
+  // proxLeft = read[1];
+  // proxRight = read[2];
+
+  // EMERGENCY STOP
+  if (proxFront >= 400) { //changed from 500
+    stopBot(100);
+  }
+
+  // REALIGNMENT ALGORITHM
+  if (proxDiff >= -100 || proxDiff <= 100){
+    Forward();
+  }
+  else if (proxDiff > 100){
+    lSpeed = lSpeed + 5;
+    setLimits();
+    TRightSlow(lSpeed,1);
+  }
+  else if (proxDiff < -100){
+    rSpeed = rSpeed - 5;
+    setLimits();
+    TLeftSlow(rSpeed,1);
+  }
+}
+
 //******************** printSensors() **************************
 // Print the prox sensor values ***** Slows robot when in use!!!
 //**************************************************************
 void printSensors() {
   Serial.println("Front Prox Sensor Reads " + (String)proxFront);
-  Serial.println("Left Prox Sensor Reads " + (String)proxLeft);
-  Serial.println("Right Prox Sensor Reads " + (String)proxRight);
+  // Serial.println("Left Prox Sensor Reads " + (String)proxLeft);
+  // Serial.println("Right Prox Sensor Reads " + (String)proxRight);
+  if (proxDiff == 0){
+    Serial.println("Centered")
+  }
+  else if (proxDiff > 0){
+    Serial.println("Biased to the Left")
+  }
+  else if (proxDiff < 0){
+    Serial.println("Biased to the Right")
+  }
   Serial.println(" ");
   delay(100);
 }
@@ -271,8 +326,8 @@ void PrintRC()
 //**************************************************************
 void Forward(int Dlay)
 {
-  R_Servo.writeMicroseconds(1450);  // sets the servo position
-  L_Servo.writeMicroseconds(1620);   // sets the servo position
+  R_Servo.writeMicroseconds(neutral-fast);  // sets the servo position
+  L_Servo.writeMicroseconds(neutral+fast);   // sets the servo position
   delay(Dlay);
 }
 //*****************  Reverse(int Dlay)   ***********************
@@ -280,8 +335,8 @@ void Forward(int Dlay)
 //**************************************************************
 void Reverse(int Dlay)
 {
-  R_Servo.writeMicroseconds(2000);  // sets the servo position
-  L_Servo.writeMicroseconds(1000);   // sets the servo position
+  R_Servo.writeMicroseconds(neutral+fast);  // sets the servo position
+  L_Servo.writeMicroseconds(neutral-fast);   // sets the servo position
   delay(Dlay);
 }
 //*****************  stopBot(int Dlay)   ***********************
@@ -289,8 +344,8 @@ void Reverse(int Dlay)
 //**************************************************************
 void stopBot(int Dlay)
 {
-  R_Servo.writeMicroseconds(1500);  // sets the servo position
-  L_Servo.writeMicroseconds(1500);   // sets the servo position
+  R_Servo.writeMicroseconds(neutral);  // sets the servo position
+  L_Servo.writeMicroseconds(neutral);   // sets the servo position
   delay(Dlay);
 }
 //************* TLeftSlow(int rVal,int Dlay) *******************
@@ -299,7 +354,7 @@ void stopBot(int Dlay)
 void TLeftSlow(int rVal, int Dlay)
 {
   R_Servo.writeMicroseconds(rVal);  // sets the servo position
-  L_Servo.writeMicroseconds(1600);   // sets the servo position
+  L_Servo.writeMicroseconds(neutral+slow);   // sets the servo position
   delay(Dlay);
 }
 //************* TRightSlow(int lVal,int Dlay) *******************
@@ -307,7 +362,7 @@ void TLeftSlow(int rVal, int Dlay)
 //**************************************************************
 void TRightSlow(int lVal, int Dlay)
 {
-  R_Servo.writeMicroseconds(1450);  // sets the servo position
+  R_Servo.writeMicroseconds(neutral-slow);  // sets the servo position
   L_Servo.writeMicroseconds(lVal);   // sets the servo position
   delay(Dlay);
 }
