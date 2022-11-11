@@ -3,36 +3,36 @@
 //-----------------------------------------------------------------
 
 // Define Servo Variables
-Servo R_Servo;  // Servo DC Motor Driver (Designed for RC cars)
-Servo L_Servo;  // Servo DC Motor Driver (Designed for RC cars)
-int Rwheel;               // Variable to hold R wheel speed
-int Lwheel;               // Variable to hold L wheel speed
-int LeftMaxIn;        //Variable to hold Max Data In
-int RightMaxIn;      //Variable to hold Max Data In
-int CalcHold;        //Variable to remp hold calculations for steering stick corections
-int rSpeed, lSpeed;       // Variables to hold autonomous speed changes for each wheel
+  Servo R_Servo;  // Servo DC Motor Driver (Designed for RC cars)
+  Servo L_Servo;  // Servo DC Motor Driver (Designed for RC cars)
+  int Rwheel;               // Variable to hold R wheel speed
+  int Lwheel;               // Variable to hold L wheel speed
+  int LeftMaxIn;        //Variable to hold Max Data In
+  int RightMaxIn;      //Variable to hold Max Data In
+  int CalcHold;        //Variable to remp hold calculations for steering stick corections
+  int rSpeed, lSpeed;       // Variables to hold autonomous speed changes for each wheel
 
 // Define RC Variables
-int Ch1,Ch2,Ch3,Ch4,Ch5,Ch6;
-const int LED = 13;       // Onboard LED location
+  int Ch1,Ch2,Ch3,Ch4,Ch5,Ch6;
+  const int LED = 13;       // Onboard LED location
 
 // Define Pixy Variables
-Pixy2 pixy;
-int signature, x, y, width, height;
-int cont = 0;
-float cx, cy, area;
-float maxArea = 315;
-uint16_t blocks;
+  Pixy2 pixy;
+  int signature, x, y, width, height;
+  int cont = 0;
+  float cx, cy, area;
+  float maxArea = 315;
+  uint16_t blocks;
 
 // Prox Sensor Pins
-const int proxFrontPin = A3;  
-const int proxLeftPin = A1;  
-const int proxRightPin = A2;  
+  const int proxFrontPin = A3;  
+  const int proxLeftPin = A1;  
+  const int proxRightPin = A2;  
 // Prox Sensor Values
-int proxFront;
-int proxLeft;
-int proxRight;
-int proxDiff;
+  int proxFront;
+  int proxLeft;
+  int proxRight;
+  int proxDiff;
 
 // CALIBRATE
 float deadZone = .3;
@@ -55,7 +55,7 @@ void setup() {
   pinMode(proxLeftPin,INPUT);
   pinMode(proxRightPin,INPUT);
   
-// Attach Speed controller that acts like a servo to the board
+  // Attach Speed controller that acts like a servo to the board
   R_Servo.attach(A5);
   L_Servo.attach(3);
   rSpeed = neutral - slow;
@@ -76,8 +76,7 @@ void setup() {
 //************************  loop()  ****************************
 //**********************  Main Loop  ***************************
 //**************************************************************
-void loop()
-{
+void loop() {
   //  TestWheels();
   //  fowardSlow();
   // DriveServosRC(); // Drive Motors under RC control
@@ -113,7 +112,7 @@ void Ch5Check() {
 //**************************************************************
 void autonomous() {
   driveDx();
-  centerTot();
+  // centerTot();
   printSensors();
   // Serial.println("dddd");
   Ch5Check();
@@ -183,8 +182,7 @@ float mapfloat(long x, long in_min, long in_max, long out_min, long out_max){
 // ******************** centerTot() ****************************
 // *********** use proximity sensors to center Tot *************
 // *************************************************************
-void centerTot()
-{
+void centerTot(){
   proxFront = analogRead(proxFrontPin);
   proxLeft = analogRead(proxLeftPin); 
   proxRight = analogRead(proxRightPin);
@@ -204,21 +202,21 @@ void centerTot()
   // proxDiff > 0, WE ARE BIASED LEFT >> GO RIGHT
   // proxDiff < 0, WE ARE BIASED RIGHT >> GO LEFT
 
-  // // EMERGENCY STOP
-  // if (proxFront >= 300) { //changed from 500
-  //   Reverse(10);
-  //   TRightSlow(10);
-  // }
-  // // REALIGNMENT ALGORITHM
-  // if (proxDiff >= -100 || proxDiff <= 100){
-  //   Forward(10);
-  // }
-  // else if (proxDiff > 100){
-  //   TRightSlow(10);
-  // }
-  // else if (proxDiff < -100){
-  //   TLeftSlow(10);
-  // }
+  // EMERGENCY STOP
+  if (proxFront >= 300) { //changed from 500
+    Reverse(10);
+    TRightSlow(10);
+  }
+  // REALIGNMENT ALGORITHM
+  if (proxDiff >= -100 || proxDiff <= 100){
+    Forward(10);
+  }
+  else if (proxDiff > 100){
+    TRightSlow(10);
+  }
+  else if (proxDiff < -100){
+    TLeftSlow(10);
+  }
 }
 
 //********************** setLimits() ***************************
