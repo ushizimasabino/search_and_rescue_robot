@@ -37,19 +37,19 @@
 // CALIBRATE
 float deadZone = .3;
 int fast = 150, slow = 80, neutral = 1500, doublefast = 200;
-int diff = 1; // Ratio of Lspeeds to Rspeeds
+int diff = -1; // Ratio of Lspeeds to Rspeeds
 
 //**************************************************************
 //*****************  Setup  ************************************
 //**************************************************************
 void setup() {
   // Set the pins that the transmitter will be connected to all to input
-  pinMode(8, INPUT); //I connected this to Chan1 of the Receiver
-  pinMode(9, INPUT); //I connected this to Chan2 of the Receiver
-  pinMode(10, INPUT); //I connected this to Chan3 of the Receiver
-  pinMode(12, INPUT); //I connected this to Chan4 of the Receiver
-  pinMode(12, INPUT); //I connected this to Chan5 of the Receiver
-  pinMode(13, INPUT); //I connected this to Chan6 of the Receiver
+  pinMode(A5, INPUT); //I connected this to Chan1 of the Receiver
+  pinMode(A4, INPUT); //I connected this to Chan2 of the Receiver
+  pinMode(A3, INPUT); //I connected this to Chan3 of the Receiver
+  pinMode(A2, INPUT); //I connected this to Chan4 of the Receiver
+  pinMode(A1, INPUT); //I connected this to Chan5 of the Receiver
+  pinMode(A0, INPUT); //I connected this to Chan6 of the Receiver
   pinMode(LED, OUTPUT);//Onboard LED to output for diagnostics
 
   pinMode(proxFrontPin,INPUT);
@@ -105,33 +105,36 @@ void loop() {
 //    R_Servo.write(2000);
 //  L_Servo.write(1000);
 // }
-  Serial.print("CH 2 ======");
-  Serial.println(Ch2);
-  PrintRC(); //Print Values for RC Mode
+
+
+
+  // Serial.print("CH 2 ======");
+  // Serial.println(Ch2);
+  // PrintRC(); //Print Values for RC Mode
 }
 
 //**********************  Ch5Check()  **************************
 //********************** Test Channel 5   **********************
 //**************************************************************
 void Ch5Check() {
-  Ch5 = pulseIn(A7, HIGH); // Capture pulse width on Channel 5
+  Ch5 = pulseIn(A1, HIGH); // Capture pulse width on Channel 5
   if (Ch5 > 1600) {
     digitalWrite(LED, HIGH);
     //autonomous();
   }
   else {
-    Ch1 = pulseIn(A5, HIGH); // Capture pulse width on Channel 1
-    Ch2 = pulseIn(A4, HIGH); // Capture pulse width on Channel 2
+    Ch1 = pulseIn(A5, HIGH, 115200); // Capture pulse width on Channel 1
+    Ch2 = pulseIn(A4, HIGH, 115200); // Capture pulse width on Channel 2
     Ch3 = pulseIn(A3, HIGH);  // Capture pulse width on Channel 3
     Ch4 = pulseIn(A2, HIGH);  // Capture pulse width on Channel 4
     digitalWrite(LED, LOW);
     DriveServosRC();
   }
 
-  Ch6 = pulseIn(5,HIGH);
-  if (Ch6 > 1600){
-    DriveArmRC();
-  }
+  // Ch6 = pulseIn(A0,HIGH);
+  // if (Ch6 > 1600){
+  //   DriveArmRC();
+  // }
 }
 
 // ============================================================================
@@ -319,12 +322,19 @@ void pulseMotors() {
 void DriveServosRC()
 {
  int buffer = 200;
- int idleZone = 1550;
- int plusminus = Ch2 - idleZone;
+ int idleCh2 = 1520;
+ int idleCh1 = 1480;
+ int plusminus = Ch2 - idleCh2;
 //  int diffNeut = idleZone - neutral;
-  if ((Ch2 - idleZone) > buffer){
-    rSpeed = neutral + diff*plusminus + (Ch1-2300);
-    lSpeed = neutral + plusminus - (Ch1-2300); //- 2 * diffNeut
+  rSpeed = neutral;
+  lSpeed = neutral;
+  if (abs(Ch2 - idleCh2) > buffer){
+    rSpeed = rSpeed + diff*plusminus;
+    lSpeed = lSpeed + plusminus; //- 2 * diffNeut
+  }
+  if (abs(Ch1-idleCh1) > buffer){
+    rSpeed = rSpeed + (Ch1 - idleCh1);
+    lSpeed = lSpeed - (Ch1 - idleCh1); //- 2 * diffNeut
   }
   autoLimits();
   R_Servo.writeMicroseconds(rSpeed);
@@ -336,11 +346,6 @@ void DriveServosRC()
 //   R_Servo.writeMicroseconds(rSpeed);
 //   L_Servo.writeMicroseconds(lSpeed);
 //  }
-  Serial.print("lSpeed =====");
-  Serial.println(lSpeed);
-
-  Serial.print("rSpeed =====");
-   Serial.println(rSpeed);
 }
 
 //*******************  Drive()  ************************
@@ -420,6 +425,11 @@ void TRightSlow(int Dlay)
 //**************************************************************
 void PrintRC()
 { // print out the values you read in:
+  Serial.print("lSpeed =====");
+  Serial.println(lSpeed);
+  Serial.print("rSpeed =====");
+  Serial.println(rSpeed);
+  
   Serial.println(" RC Control Mode ");
   Serial.print("Value Ch1 = ");
   Serial.println(Ch1);
