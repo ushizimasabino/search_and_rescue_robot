@@ -35,20 +35,21 @@
   int proxDiff;
 
 // CALIBRATE
-float deadZone = .3;
+// float deadZone = .3;
 int fast = 150, slow = 80, neutral = 1500, doublefast = 200;
+int diff = 1; // Ratio of Lspeeds to Rspeeds
 
 //**************************************************************
 //*****************  Setup  ************************************
 //**************************************************************
 void setup() {
   // Set the pins that the transmitter will be connected to all to input
-  pinMode(4, INPUT); //I connected this to Chan1 of the Receiver
+  pinMode(8, INPUT); //I connected this to Chan1 of the Receiver
   pinMode(9, INPUT); //I connected this to Chan2 of the Receiver
-  pinMode(8, INPUT); //I connected this to Chan3 of the Receiver
-  pinMode(7, INPUT); //I connected this to Chan4 of the Receiver
-  pinMode(6, INPUT); //I connected this to Chan5 of the Receiver
-  pinMode(5, INPUT); //I connected this to Chan6 of the Receiver
+  pinMode(10, INPUT); //I connected this to Chan3 of the Receiver
+  pinMode(12, INPUT); //I connected this to Chan4 of the Receiver
+  pinMode(12, INPUT); //I connected this to Chan5 of the Receiver
+  pinMode(13, INPUT); //I connected this to Chan6 of the Receiver
   pinMode(LED, OUTPUT);//Onboard LED to output for diagnostics
 
   pinMode(proxFrontPin,INPUT);
@@ -56,14 +57,13 @@ void setup() {
   pinMode(proxRightPin,INPUT);
  
   // Attach Speed controller that acts like a servo to the board
-  R_Servo.attach(3);
-  L_Servo.attach(2);
-  rSpeed = neutral + slow;
+  R_Servo.attach(5);
+  L_Servo.attach(6);
+  rSpeed = neutral + diff*slow;
   lSpeed = neutral + slow;
 
-  // Arm motors
-  ArmR.attach(A9);
-  ArmL.attach(A8);
+//  ArmR.attach(A9);
+//  ArmL.attach(A8);
  
   //Flash the LED on and Off 10x before entering main loop
   for (int i = 0; i < 10; i++) {
@@ -85,6 +85,28 @@ void loop() {
   //  fowardSlow();
   // DriveServosRC(); // Drive Motors under RC control
   Ch5Check();
+  //R_Servo.write(1000);
+// Ch1 = pulseIn(A5, HIGH); // Capture pulse width on Channel 1
+//     Ch2 = pulseIn(A4, HIGH, 115200); // Capture pulse width on Channel 2
+//     Ch3 = pulseIn(A3, HIGH, 115200);  // Capture pulse width on Channel 3
+//     Ch4 = pulseIn(A2, HIGH, 115200);  // Capture pulse width on Channel 4
+
+// int deadZone = 350;
+// int idleZone = 1950;
+// if ((Ch2 - idleZone) > deadZone){
+//  R_Servo.writeMicroseconds(1000);
+//  L_Servo.writeMicroseconds(2000);
+// }
+//  if ((Ch2 - idleZone) < deadZone){
+//  R_Servo.writeMicroseconds(1500);
+//  L_Servo.writeMicroseconds(1500);
+//  }
+// if(((Ch2 - idleZone) < 0) && (Ch2 - idleZone) < (-deadZone)){
+//    R_Servo.write(2000);
+//  L_Servo.write(1000);
+// }
+  Serial.print("CH 2 ======");
+  Serial.println(Ch2);
   PrintRC(); //Print Values for RC Mode
 }
 
@@ -92,16 +114,16 @@ void loop() {
 //********************** Test Channel 5   **********************
 //**************************************************************
 void Ch5Check() {
-  Ch5 = pulseIn(8, HIGH); // Capture pulse width on Channel 5
+  Ch5 = pulseIn(A7, HIGH); // Capture pulse width on Channel 5
   if (Ch5 > 1600) {
     digitalWrite(LED, HIGH);
     //autonomous();
   }
   else {
-    Ch1 = pulseIn(4, HIGH); // Capture pulse width on Channel 1
-    Ch2 = pulseIn(5, HIGH); // Capture pulse width on Channel 2
-    Ch3 = pulseIn(6, HIGH);  // Capture pulse width on Channel 3
-    Ch4 = pulseIn(7, HIGH);  // Capture pulse width on Channel 4
+    Ch1 = pulseIn(A5, HIGH); // Capture pulse width on Channel 1
+    Ch2 = pulseIn(A4, HIGH); // Capture pulse width on Channel 2
+    Ch3 = pulseIn(A3, HIGH);  // Capture pulse width on Channel 3
+    Ch4 = pulseIn(A2, HIGH);  // Capture pulse width on Channel 4
     digitalWrite(LED, LOW);
     DriveServosRC();
   }
@@ -246,7 +268,7 @@ void setLimits() {
   if (Rwheel > 2000) {// Can be set to a value you don't wish to exceed
     Rwheel = 2000;    // to adjust maximums for your own robot
   }
-  pulseMotors();
+  // pulseMotors();
 }
 
 //********************** autoLimits() ***************************
@@ -283,7 +305,6 @@ void pulseMotors() {
 
   // un-comment this line do display the value being sent to the motors
   //  PrintWheelCalcs(); //REMEMBER: printing values slows reaction times
-
 }
 
 // ============================================================================
@@ -297,17 +318,29 @@ void pulseMotors() {
 //**************************************************************
 void DriveServosRC()
 {
-  if (Ch2 <= 1500) {
-    Lwheel = Ch1 + Ch2 - 1500;
-    Rwheel = Ch1 - Ch2 + 1500;
-    setLimits();
+ int deadZone = 200;
+ int idleZone = 1550;
+ int plusminus = Ch2 - idleZone;
+//  int diffNeut = idleZone - neutral;
+  if ((Ch2 - idleZone) > deadZone){
+    rSpeed = neutral + diff*plusminus + (Ch1-2300);
+    lSpeed = neutral + plusminus - (Ch1-2300); //- 2 * diffNeut
   }
-  if (Ch2 > 1500) {
-    int Ch1_mod = map(Ch1, 1000, 2000, 2000, 1000); // Invert the Ch1 axis to keep the math similar
-    Lwheel = Ch1_mod + Ch2 - 1500;
-    Rwheel = Ch1_mod - Ch2 + 1500;
-    setLimits();
-  }
+  autoLimits();
+  R_Servo.writeMicroseconds(rSpeed);
+  L_Servo.writeMicroseconds(lSpeed);
+ 
+//  if(((Ch2 - idleZone) < 0) && (Ch2 - idleZone) < (-deadZone)){
+//   rSpeed = -(Ch2 - idleZone) + neutral ;
+//   lSpeed = (neutral +  (Ch2 - idleZone)); //- 2 * diffNeut
+//   R_Servo.writeMicroseconds(rSpeed);
+//   L_Servo.writeMicroseconds(lSpeed);
+//  }
+  Serial.print("lSpeed =====");
+  Serial.println(lSpeed);
+
+  Serial.print("rSpeed =====");
+   Serial.println(rSpeed);
 }
 
 //*******************  Drive()  ************************
@@ -324,8 +357,8 @@ void DriveArmRC()
     Ch2 = 1000;
   }
   Ch2 = 1500+(Ch2 - 1500)/10;
-  ArmR.writeMicroseconds(Ch2);
-  ArmL.writeMicroseconds(Ch2);
+//  ArmR.writeMicroseconds(Ch2);
+//  ArmL.writeMicroseconds(Ch2);
 }
 
 //*****************  Forward(int Dlay)   ***********************
