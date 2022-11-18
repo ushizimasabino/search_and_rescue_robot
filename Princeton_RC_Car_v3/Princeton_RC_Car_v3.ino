@@ -35,7 +35,7 @@
   int proxDiff;
 
 // CALIBRATE
-// float deadZone = .3;
+float deadZone = .3;
 int fast = 150, slow = 80, neutral = 1500, doublefast = 200;
 int diff = 1; // Ratio of Lspeeds to Rspeeds
 
@@ -318,11 +318,11 @@ void pulseMotors() {
 //**************************************************************
 void DriveServosRC()
 {
- int deadZone = 200;
+ int buffer = 200;
  int idleZone = 1550;
  int plusminus = Ch2 - idleZone;
 //  int diffNeut = idleZone - neutral;
-  if ((Ch2 - idleZone) > deadZone){
+  if ((Ch2 - idleZone) > buffer){
     rSpeed = neutral + diff*plusminus + (Ch1-2300);
     lSpeed = neutral + plusminus - (Ch1-2300); //- 2 * diffNeut
   }
