@@ -56,10 +56,13 @@ void setup() {
   pinMode(proxRightPin,INPUT);
  
   // Attach Speed controller that acts like a servo to the board
-  R_Servo.attach(A5);
-  L_Servo.attach(3);
+  R_Servo.attach(3);
+  L_Servo.attach(2);
   rSpeed = neutral + slow;
   lSpeed = neutral + slow;
+
+  ArmR.attach(A9);
+  ArmL.attach(A8);
  
   //Flash the LED on and Off 10x before entering main loop
   for (int i = 0; i < 10; i++) {
@@ -100,6 +103,11 @@ void Ch5Check() {
     Ch4 = pulseIn(7, HIGH);  // Capture pulse width on Channel 4
     digitalWrite(LED, LOW);
     DriveServosRC();
+  }
+
+  Ch6 = pulseIn(5,HIGH);
+  if (Ch6 > 1600){
+    DriveArmRC();
   }
 }
 
@@ -300,6 +308,25 @@ void DriveServosRC()
     setLimits();
   }
 }
+
+//*******************  Drive()  ************************
+//******  Use the value collected from Ch1 and Ch2  ************
+//******  on a single stick to relatively calculate  ***********
+//****  speed and direction of two servo driven wheels *********
+//**************************************************************
+void DriveArmRC()
+{
+  if (Ch2 > 2000) {
+    Ch2 = 2000;
+  }
+  if (Ch2 < 1000) {
+    Ch2 = 1000;
+  }
+  Ch2 = 1500+(Ch2 - 1500)/10;
+  ArmR.writeMicroseconds(Ch2);
+  ArmL.writeMicroseconds(Ch2);
+}
+
 //*****************  Forward(int Dlay)   ***********************
 //              Move the robot Slowly Forward
 //**************************************************************
