@@ -12,6 +12,9 @@
   int CalcHold;        //Variable to remp hold calculations for steering stick corections
   int rSpeed, lSpeed;       // Variables to hold autonomous speed changes for each wheel
 
+  Servo ArmR;
+  Servo ArmL;
+
 // Define RC Variables
   int Ch1,Ch2,Ch3,Ch4,Ch5,Ch6;
   const int LED = 13;       // Onboard LED location
@@ -25,9 +28,9 @@
   uint16_t blocks;
 
 // Prox Sensor Pins
-  const int proxFrontPin = A3;  
-  const int proxLeftPin = A1;  
-  const int proxRightPin = A2;  
+  const int proxFrontPin = 10;  
+  const int proxLeftPin = 8;  
+  const int proxRightPin = 9;  
 // Prox Sensor Values
   int proxFront;
   int proxLeft;
@@ -62,8 +65,10 @@ void setup() {
   rSpeed = neutral + diff*slow;
   lSpeed = neutral + slow;
 
-//  ArmR.attach(A9);
-//  ArmL.attach(A8);
+  ArmR.attach(2);
+  ArmL.attach(3);
+  // int rArm = neutral;
+  // int lArm = neutral;
  
   //Flash the LED on and Off 10x before entering main loop
   for (int i = 0; i < 10; i++) {
@@ -110,7 +115,7 @@ void loop() {
 
   // Serial.print("CH 2 ======");
   // Serial.println(Ch2);
-  //PrintRC(); //Print Values for RC Mode
+  // PrintRC(); //Print Values for RC Mode
 }
 
 //**********************  Ch5Check()  **************************
@@ -120,7 +125,7 @@ void Ch5Check() {
   Ch5 = pulseIn(A1, HIGH); // Capture pulse width on Channel 5
   if (Ch5 > 1600) {
     digitalWrite(LED, HIGH);
-    //autonomous();
+    autonomous();
   }
   else {
     Ch1 = pulseIn(A5, HIGH, 115200); // Capture pulse width on Channel 1
@@ -131,10 +136,10 @@ void Ch5Check() {
     DriveServosRC();
   }
 
-  // Ch6 = pulseIn(A0,HIGH);
-  // if (Ch6 > 1600){
-  //   DriveArmRC();
-  // }
+  Ch6 = pulseIn(A0,HIGH);
+  if (Ch6 > 1600){
+    DriveArmRC();
+  }
 }
 
 // ============================================================================
@@ -146,9 +151,9 @@ void Ch5Check() {
 //**************************************************************
 void autonomous() {
   driveDx();
+  // printSensors();
   // centerTot();
-  //printSensors();
-  // Serial.println("dddd");
+  // PrintAuto();
   Ch5Check();
 }
 
@@ -370,15 +375,16 @@ void DriveServosRC()
 //**************************************************************
 void DriveArmRC()
 {
-  if (Ch2 > 2000) {
-    Ch2 = 2000;
+  if (Ch3 > 2000) {
+    Ch3 = 2000;
   }
-  if (Ch2 < 1000) {
-    Ch2 = 1000;
+  if (Ch3 < 1000) {
+    Ch3 = 1000;
   }
-  Ch2 = 1500+(Ch2 - 1500)/10;
-//  ArmR.writeMicroseconds(Ch2);
-//  ArmL.writeMicroseconds(Ch2);
+  int armSlow = 10;
+  Ch3 = 1500+(Ch3 - 1500)/armSlow;
+ ArmR.writeMicroseconds(Ch3);
+ ArmL.writeMicroseconds(Ch3);
 }
 
 //*****************  Forward(int Dlay)   ***********************
@@ -434,6 +440,17 @@ void TRightSlow(int Dlay)
 // ============================================================================
 // =========================== RUN DIAGNOSTICS ================================
 // ============================================================================
+
+//**********************  PrintAuto()  *************************
+//**************************************************************
+void PrintAuto()
+{ // print out the values you read in:
+  Serial.print("lSpeed =====");
+  Serial.println(lSpeed-neutral);
+  Serial.print("rSpeed =====");
+  Serial.println(diff*(rSpeed-neutral));
+}
+
 
 //**********************  PrintRC()  ***************************
 //***  Simply print the collected RC values for diagnostics  ***
