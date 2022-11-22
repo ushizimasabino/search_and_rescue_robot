@@ -111,7 +111,7 @@ void loop() {
 
   // Serial.print("CH 2 ======");
   // Serial.println(Ch2);
-  //PrintRC(); //Print Values for RC Mode
+  // PrintRC(); //Print Values for RC Mode
 }
 
 //**********************  Ch5Check()  **************************
@@ -323,35 +323,20 @@ void pulseMotors() {
 //**************************************************************
 void DriveServosRC()
 {
- int buffer = 100;
- int idleCh2 = 1500;
- int idleCh1 = 1500;
+ int buffer = 200;
+ int idleCh2 = 1520;
+ int idleCh1 = 1480;
  int plusminus = Ch2 - idleCh2;
- int turnFactor = 10, turnMultiply;
 //  int diffNeut = idleZone - neutral;
   rSpeed = neutral;
   lSpeed = neutral;
-  turnMultiply = 1; //turnFactor * (abs(plusminus)/250);
-  if (Ch2 - idleCh2 > buffer){
-    rSpeed = rSpeed + diff*plusminus;
-    lSpeed = lSpeed + plusminus; //- 2 * diffNeut    
-    if (abs(Ch1-idleCh1) > buffer){
-      rSpeed = rSpeed - diff*turnMultiply*(Ch1 - idleCh1);
-      lSpeed = lSpeed + turnMultiply*(Ch1 - idleCh1); //- 2 * diffNeut
-    }
-  }
-  if (Ch2 - idleCh2 < -buffer){
+  if (abs(Ch2 - idleCh2) > buffer){
     rSpeed = rSpeed + diff*plusminus;
     lSpeed = lSpeed + plusminus; //- 2 * diffNeut
-    if (abs(Ch1-idleCh1) > buffer){
-      rSpeed = rSpeed + diff*turnMultiply*(Ch1 - idleCh1);
-      lSpeed = lSpeed - turnMultiply*(Ch1 - idleCh1); //- 2 * diffNeut
-    }
   }
-  if (Ch2 == 0)
-  {
-    rSpeed = neutral;
-    lSpeed = neutral;
+  if (abs(Ch1-idleCh1) > buffer){
+    rSpeed = rSpeed + (Ch1 - idleCh1);
+    lSpeed = lSpeed - (Ch1 - idleCh1); //- 2 * diffNeut
   }
   autoLimits();
   R_Servo.writeMicroseconds(rSpeed);
@@ -443,10 +428,10 @@ void TRightSlow(int Dlay)
 void PrintRC()
 { // print out the values you read in:
   Serial.print("lSpeed =====");
-  Serial.println(lSpeed-neutral);
+  Serial.println(lSpeed);
   Serial.print("rSpeed =====");
-  Serial.println(diff*(rSpeed-neutral));
-
+  Serial.println(rSpeed);
+  
   Serial.println(" RC Control Mode ");
   Serial.print("Value Ch1 = ");
   Serial.println(Ch1);
