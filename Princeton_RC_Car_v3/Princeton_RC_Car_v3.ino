@@ -5,6 +5,8 @@
 // Define Servo Variables
   Servo R_Servo;  // Servo DC Motor Driver (Designed for RC cars)
   Servo L_Servo;  // Servo DC Motor Driver (Designed for RC cars)
+  Servo ArmR;
+  Servo ArmL;
   int Rwheel;               // Variable to hold R wheel speed
   int Lwheel;               // Variable to hold L wheel speed
   int LeftMaxIn;        //Variable to hold Max Data In
@@ -61,9 +63,8 @@ void setup() {
   L_Servo.attach(6);
   rSpeed = neutral + diff*slow;
   lSpeed = neutral + slow;
-
-//  ArmR.attach(A9);
-//  ArmL.attach(A8);
+  ArmR.attach(3);
+  ArmL.attach(2);
  
   //Flash the LED on and Off 10x before entering main loop
   for (int i = 0; i < 10; i++) {
@@ -94,7 +95,7 @@ void loop() {
 // int deadZone = 350;
 // int idleZone = 1950;
 // if ((Ch2 - idleZone) > deadZone){
-//  R_Servo.writeMicroseconds(1000);
+//  R_Servo.writeMicroseconds(1ar000);
 //  L_Servo.writeMicroseconds(2000);
 // }
 //  if ((Ch2 - idleZone) < deadZone){
@@ -117,6 +118,8 @@ void loop() {
 //********************** Test Channel 5   **********************
 //**************************************************************
 void Ch5Check() {
+  Ch6 = pulseIn(A0,HIGH); // Capture Pulse Width on Channel 6
+  if (Ch6 < 1600) { // stay in normal mode
   Ch5 = pulseIn(A1, HIGH); // Capture pulse width on Channel 5
   if (Ch5 > 1600) {
     digitalWrite(LED, HIGH);
@@ -130,11 +133,10 @@ void Ch5Check() {
     digitalWrite(LED, LOW);
     DriveServosRC();
   }
-
-  // Ch6 = pulseIn(A0,HIGH);
-  // if (Ch6 > 1600){
-  //   DriveArmRC();
-  // }
+  }
+  // Else Enter Debug Mode
+  Ch2 = pulseIn(A4, HIGH, 115200); // Capture pulse width on Channel 2
+     DriveArmRC();
 }
 
 // ============================================================================
@@ -377,8 +379,8 @@ void DriveArmRC()
     Ch2 = 1000;
   }
   Ch2 = 1500+(Ch2 - 1500)/10;
-//  ArmR.writeMicroseconds(Ch2);
-//  ArmL.writeMicroseconds(Ch2);
+  ArmR.writeMicroseconds(Ch2);
+  ArmL.writeMicroseconds(Ch2);
 }
 
 //*****************  Forward(int Dlay)   ***********************
