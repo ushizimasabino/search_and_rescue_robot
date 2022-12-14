@@ -28,9 +28,9 @@
   uint16_t blocks;
 
 // Prox Sensor Pins
-  const int proxFrontPin = A4;  
-  const int proxLeftPin = A5;  
-  const int proxRightPin = A3;  
+  const int proxFrontPin = A5;  
+  const int proxLeftPin = A3;  
+  const int proxRightPin = A4;  
 
 // Prox Sensor Values
   int proxFront;
@@ -65,8 +65,8 @@ void setup() {
   pinMode(proxRightPin,INPUT);
  
   // Attach Speed controller that acts like a servo to the board
-  R_Servo.attach(9);
-  L_Servo.attach(10);
+  R_Servo.attach(10);
+  L_Servo.attach(9);
   ArmR.attach(A0);
   ArmL.attach(A1);
   ArmM.attach(A2);
@@ -130,10 +130,10 @@ void loop() {
 //    Ch5 = pulseIn(7, HIGH);  // Capture pulse width on Channel 3
 //    Ch6 = pulseIn(8, HIGH);  // Capture pulse width on Channel 4
 //    PrintRC(); //Print Values for RC Mode
-   proxFront = analogRead(proxFrontPin);
-  proxLeft = analogRead(proxLeftPin);
-  proxRight = analogRead(proxRightPin);
- printSensors();
+//   proxFront = analogRead(proxFrontPin);
+//  proxLeft = analogRead(proxLeftPin);
+//  proxRight = analogRead(proxRightPin);
+// printSensors();
 //PrintRC();
 
   
@@ -184,7 +184,7 @@ void autonomous() {
   driveDx();
 //   centerTot();
   // Serial.println("dddd");
-  Ch5Check();
+//  Ch5Check();
 }
 
 //**********************  Pixy Tracking  ***********************
@@ -198,7 +198,7 @@ float pixyTrack() {
   // grab blocks!
   blocks = 0;
   blocks = pixy.ccc.getBlocks();
-
+  cx = 0;
   // Get Height & Width of Blocks
   if (blocks)
   {
@@ -230,13 +230,13 @@ void driveDx()
  
   // Serial.println(dx);
   if (dx > -deadZone && dx < deadZone){
-    Forward(10);
+//    Forward(10);
   }
   if (dx <= -deadZone) {
-    TRightSlow(10);
+    TLeftSlow(10);
   }
   else if (dx >= deadZone) {
-    TLeftSlow(10);
+    TRightSlow(10);
   }
   // Serial.print("rSpeed =");
   // Serial.println(abs(rSpeed-1500));
@@ -252,19 +252,19 @@ float mapfloat(long x, long in_min, long in_max, long out_min, long out_max){
 // *********** use proximity sensors to center Tot *************
 // *************************************************************
 void centerTot(){
-  proxFront = pulseIn(proxFrontPin, HIGH);
-  proxLeft = pulseIn(proxLeftPin, HIGH);
-  proxRight = pulseIn(proxRightPin, HIGH);
- 
-  // take 5 samples and average
-  for (int i = 0; i <= 3; i++) {
-    proxFront = proxFront + pulseIn(proxFrontPin, HIGH);
-    proxLeft = proxLeft + pulseIn(proxLeftPin, HIGH);
-    proxRight = proxRight + pulseIn(proxRightPin, HIGH);
-  }
-  proxFront = proxFront / 5;
-  proxLeft = proxLeft / 5;
-  proxRight = proxRight / 5;
+  proxFront = analogRead(proxFrontPin);
+  proxLeft = analogRead(proxLeftPin);
+  proxRight = analogRead(proxRightPin);
+// 
+//  // take 5 samples and average
+//  for (int i = 0; i <= 3; i++) {
+//    proxFront = proxFront + pulseIn(proxFrontPin, HIGH);
+//    proxLeft = proxLeft + pulseIn(proxLeftPin, HIGH);
+//    proxRight = proxRight + pulseIn(proxRightPin, HIGH);
+//  }
+//  proxFront = proxFront / 5;
+//  proxLeft = proxLeft / 5;
+//  proxRight = proxRight / 5;
   proxDiff = proxLeft - proxRight;
   // NOTE:
   // proxDiff == 0 , WE ARE CENTERED
@@ -277,15 +277,20 @@ void centerTot(){
 //    TRightSlow(10);
 //  }
   // REALIGNMENT ALGORITHM
-  if (proxDiff >= -100 || proxDiff <= 100){
+  if (proxDiff >= -50 || proxDiff <= 100){
     Forward(10);
   }
-  else if (proxDiff > 100){
-    TLeftSlow(10);
-  }
-  else if (proxDiff < -100){
+  if (proxDiff > 50){
+    Reverse(100);
     TRightSlow(10);
   }
+  else if (proxDiff < -50){
+    Reverse(100);
+    TLeftSlow(10);
+  }
+   printSensors();
+   delay(200);
+
 }
 
 //********************** setLimits() ***************************
@@ -369,16 +374,16 @@ void DriveServosRC()
     rSpeed = rSpeed + diff*plusminus;
     lSpeed = lSpeed + plusminus; //- 2 * diffNeut    
     if (abs(Ch1-idleCh1) > buffer){
-      rSpeed = rSpeed - diff*turnMultiply*(Ch1 - idleCh1);
-      lSpeed = lSpeed + turnMultiply*(Ch1 - idleCh1); //- 2 * diffNeut
+      rSpeed = rSpeed +turnMultiply*(Ch1 - idleCh1);
+      lSpeed = lSpeed - turnMultiply*(Ch1 - idleCh1); //- 2 * diffNeut
     }
   }
   if (Ch2 - idleCh2 < -buffer){
     rSpeed = rSpeed + diff*plusminus;
     lSpeed = lSpeed + plusminus; //- 2 * diffNeut
     if (abs(Ch1-idleCh1) > buffer){
-      rSpeed = rSpeed + diff*turnMultiply*(Ch1 - idleCh1);
-      lSpeed = lSpeed - turnMultiply*(Ch1 - idleCh1); //- 2 * diffNeut
+      rSpeed = rSpeed - diff*turnMultiply*(Ch1 - idleCh1);
+      lSpeed = lSpeed + turnMultiply*(Ch1 - idleCh1); //- 2 * diffNeut
     }
   }
   if (Ch2 == 0)
@@ -452,8 +457,9 @@ void DriveArmRC()
 //**************************************************************
 void Forward(int Dlay)
 {
-  R_Servo.writeMicroseconds(neutral-doublefast);  // sets the servo position
-  L_Servo.writeMicroseconds(neutral+doublefast);   // sets the servo position
+  // PReviously doublefast
+  R_Servo.writeMicroseconds(neutral+slow);  // sets the servo position
+  L_Servo.writeMicroseconds(neutral-slow);   // sets the servo position
   delay(Dlay);
 }
 //*****************  Reverse(int Dlay)   ***********************
@@ -461,8 +467,8 @@ void Forward(int Dlay)
 //**************************************************************
 void Reverse(int Dlay)
 {
-  R_Servo.writeMicroseconds(neutral+slow);  // sets the servo position
-  L_Servo.writeMicroseconds(neutral-slow);   // sets the servo position
+  R_Servo.writeMicroseconds(neutral-slow);  // sets the servo position
+  L_Servo.writeMicroseconds(neutral+slow);   // sets the servo position
   delay(Dlay);
 }
 //*****************  stopBot(int Dlay)   ***********************
@@ -479,8 +485,8 @@ void stopBot(int Dlay)
 //**************************************************************
 void TLeftSlow(int Dlay)
 {
-  lSpeed = neutral - fast;
-  rSpeed = neutral;
+  lSpeed = neutral;
+  rSpeed = neutral + 1*fast;
   R_Servo.writeMicroseconds(rSpeed);  // sets the servo position
   L_Servo.writeMicroseconds(lSpeed);   // sets the servo position
   delay(Dlay);
@@ -490,8 +496,8 @@ void TLeftSlow(int Dlay)
 //**************************************************************
 void TRightSlow(int Dlay)
 {
-  lSpeed = neutral;
-  rSpeed = neutral + fast;
+  lSpeed = neutral - 1*fast;
+  rSpeed = neutral;
   R_Servo.writeMicroseconds(rSpeed);  // sets the servo position
   L_Servo.writeMicroseconds(lSpeed);   // sets the servo position
   delay(Dlay);
