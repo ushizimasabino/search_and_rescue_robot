@@ -7,6 +7,7 @@
   Servo L_Servo;  // Servo DC Motor Driver (Designed for RC cars)
   Servo ArmR;
   Servo ArmL;
+  Servo ArmM;
   int Rwheel;               // Variable to hold R wheel speed
   int Lwheel;               // Variable to hold L wheel speed
   int LeftMaxIn;        //Variable to hold Max Data In
@@ -27,9 +28,10 @@
   uint16_t blocks;
 
 // Prox Sensor Pins
-  const int proxFrontPin = A3;  
-  const int proxLeftPin = A1;  
-  const int proxRightPin = A2;  
+  const int proxFrontPin = A5;  
+  const int proxLeftPin = A3;  
+  const int proxRightPin = A4;  
+
 // Prox Sensor Values
   int proxFront;
   int proxLeft;
@@ -49,22 +51,30 @@ void setup() {
   pinMode(A5, INPUT); //I connected this to Chan1 of the Receiver
   pinMode(A4, INPUT); //I connected this to Chan2 of the Receiver
   pinMode(A3, INPUT); //I connected this to Chan3 of the Receiver
-  pinMode(A2, INPUT); //I connected this to Chan4 of the Receiver
-  pinMode(A1, INPUT); //I connected this to Chan5 of the Receiver
-  pinMode(A0, INPUT); //I connected this to Chan6 of the Receiver
+//  pinMode(A2, INPUT); //I connected this to Chan4 of the Receiver
+//  pinMode(A1, INPUT); //I connected this to Chan5 of the Receiver
+//  pinMode(A0, INPUT); //I connected this to Chan6 of the Receiver
   pinMode(LED, OUTPUT);//Onboard LED to output for diagnostics
 
+//  pinMode(8, OUTPUT);
+//  pinMode(9, INPUT);
+//  pinMode(11, INPUT);
+  
   pinMode(proxFrontPin,INPUT);
   pinMode(proxLeftPin,INPUT);
   pinMode(proxRightPin,INPUT);
  
   // Attach Speed controller that acts like a servo to the board
-  R_Servo.attach(5);
-  L_Servo.attach(6);
+  R_Servo.attach(10);
+  L_Servo.attach(9);
+  ArmR.attach(A0);
+  ArmL.attach(A1);
+  ArmM.attach(A2);
   rSpeed = neutral + diff*slow;
   lSpeed = neutral + slow;
-  ArmR.attach(3);
-  ArmL.attach(2);
+
+//  ArmR.attach(A9);
+//  ArmL.attach(A8);
  
   //Flash the LED on and Off 10x before entering main loop
   for (int i = 0; i < 10; i++) {
@@ -95,7 +105,7 @@ void loop() {
 // int deadZone = 350;
 // int idleZone = 1950;
 // if ((Ch2 - idleZone) > deadZone){
-//  R_Servo.writeMicroseconds(1ar000);
+//  R_Servo.writeMicroseconds(1000);
 //  L_Servo.writeMicroseconds(2000);
 // }
 //  if ((Ch2 - idleZone) < deadZone){
@@ -109,34 +119,58 @@ void loop() {
 
 
 
+
+
   // Serial.print("CH 2 ======");
   // Serial.println(Ch2);
-  // PrintRC(); //Print Values for RC Mode
+//      Ch1 = pulseIn(3, HIGH, 115200); // Capture pulse width on Channel 1
+//    Ch2 = pulseIn(4, HIGH, 115200); // Capture pulse width on Channel 2
+//    Ch3 = pulseIn(5, HIGH);  // Capture pulse width on Channel 3
+//    Ch4 = pulseIn(6, HIGH);  // Capture pulse width on Channel 4
+//    Ch5 = pulseIn(7, HIGH);  // Capture pulse width on Channel 3
+//    Ch6 = pulseIn(8, HIGH);  // Capture pulse width on Channel 4
+//    PrintRC(); //Print Values for RC Mode
+//   proxFront = analogRead(proxFrontPin);
+//  proxLeft = analogRead(proxLeftPin);
+//  proxRight = analogRead(proxRightPin);
+// printSensors();
+//PrintRC();
+
+  
 }
 
 //**********************  Ch5Check()  **************************
 //********************** Test Channel 5   **********************
 //**************************************************************
 void Ch5Check() {
-  Ch6 = pulseIn(A0,HIGH); // Capture Pulse Width on Channel 6
-  if (Ch6 < 1600) { // stay in normal mode
-  Ch5 = pulseIn(A1, HIGH); // Capture pulse width on Channel 5
+  Ch6 = pulseIn(8,HIGH);
+  if(Ch6 < 1600){
+  Ch5 = pulseIn(7, HIGH); // Capture pulse width on Channel 5
   if (Ch5 > 1600) {
     digitalWrite(LED, HIGH);
-    //autonomous();
+    autonomous();
   }
   else {
-    Ch1 = pulseIn(A5, HIGH, 115200); // Capture pulse width on Channel 1
-    Ch2 = pulseIn(A4, HIGH, 115200); // Capture pulse width on Channel 2
-    Ch3 = pulseIn(A3, HIGH);  // Capture pulse width on Channel 3
-    Ch4 = pulseIn(A2, HIGH);  // Capture pulse width on Channel 4
+    Ch1 = pulseIn(3, HIGH, 115200); // Capture pulse width on Channel 1
+    Ch2 = pulseIn(4, HIGH, 115200); // Capture pulse width on Channel 2
+    Ch3 = pulseIn(5, HIGH);  // Capture pulse width on Channel 3
+    Ch4 = pulseIn(6, HIGH);  // Capture pulse width on Channel 4
     digitalWrite(LED, LOW);
     DriveServosRC();
   }
+
+  // Ch6 = pulseIn(A0,HIGH);
+  // if (Ch6 > 1600){
+  //   ==========================================================RC();
+  // }
   }
-  // Else Enter Debug Mode
-  Ch2 = pulseIn(A4, HIGH, 115200); // Capture pulse width on Channel 2
-     DriveArmRC();
+  else if(Ch6 > 1600){
+      Ch1 = pulseIn(3, HIGH, 115200); // Capture pulse width on Channel 1dr
+      Ch2 = pulseIn(4, HIGH, 115200); // Capture pulse width on Channel 2
+      Ch3 = pulseIn(5, HIGH);  // Capture pulse width on Channel 3
+
+      DriveArmRC();
+  }
 }
 
 // ============================================================================
@@ -148,10 +182,9 @@ void Ch5Check() {
 //**************************************************************
 void autonomous() {
   driveDx();
-  // centerTot();
-  //printSensors();
+//   centerTot();
   // Serial.println("dddd");
-  Ch5Check();
+//  Ch5Check();
 }
 
 //**********************  Pixy Tracking  ***********************
@@ -165,7 +198,7 @@ float pixyTrack() {
   // grab blocks!
   blocks = 0;
   blocks = pixy.ccc.getBlocks();
-
+  cx = 0;
   // Get Height & Width of Blocks
   if (blocks)
   {
@@ -197,7 +230,7 @@ void driveDx()
  
   // Serial.println(dx);
   if (dx > -deadZone && dx < deadZone){
-    Forward(10);
+//    Forward(10);
   }
   if (dx <= -deadZone) {
     TLeftSlow(10);
@@ -222,16 +255,16 @@ void centerTot(){
   proxFront = analogRead(proxFrontPin);
   proxLeft = analogRead(proxLeftPin);
   proxRight = analogRead(proxRightPin);
- 
-  // take 5 samples and average
-  for (int i = 0; i <= 3; i++) {
-    proxFront = proxFront + analogRead(proxFrontPin);
-    proxLeft = proxLeft + analogRead(proxLeftPin);
-    proxRight = proxRight + analogRead(proxRightPin);
-  }
-  proxFront = proxFront / 5;
-  proxLeft = proxLeft / 5;
-  proxRight = proxRight / 5;
+// 
+//  // take 5 samples and average
+//  for (int i = 0; i <= 3; i++) {
+//    proxFront = proxFront + pulseIn(proxFrontPin, HIGH);
+//    proxLeft = proxLeft + pulseIn(proxLeftPin, HIGH);
+//    proxRight = proxRight + pulseIn(proxRightPin, HIGH);
+//  }
+//  proxFront = proxFront / 5;
+//  proxLeft = proxLeft / 5;
+//  proxRight = proxRight / 5;
   proxDiff = proxLeft - proxRight;
   // NOTE:
   // proxDiff == 0 , WE ARE CENTERED
@@ -239,20 +272,25 @@ void centerTot(){
   // proxDiff < 0, WE ARE BIASED RIGHT >> GO LEFT
 
   // EMERGENCY STOP
-  if (proxFront >= 300) { //changed from 500
-    Reverse(10);
-    TRightSlow(10);
-  }
+//  if (proxFront >= 300) { //changed from 500
+//    Reverse(10);
+//    TRightSlow(10);
+//  }
   // REALIGNMENT ALGORITHM
-  if (proxDiff >= -100 || proxDiff <= 100){
+  if (proxDiff >= -50 || proxDiff <= 100){
     Forward(10);
   }
-  else if (proxDiff > 100){
+  if (proxDiff > 50){
+    Reverse(100);
     TRightSlow(10);
   }
-  else if (proxDiff < -100){
+  else if (proxDiff < -50){
+    Reverse(100);
     TLeftSlow(10);
   }
+   printSensors();
+   delay(200);
+
 }
 
 //********************** setLimits() ***************************
@@ -323,20 +361,35 @@ void pulseMotors() {
 //**************************************************************
 void DriveServosRC()
 {
- int buffer = 200;
- int idleCh2 = 1520;
- int idleCh1 = 1480;
+ int buffer = 100;
+ int idleCh2 = 1500;
+ int idleCh1 = 1500;
  int plusminus = Ch2 - idleCh2;
+ int turnFactor = 10, turnMultiply;
 //  int diffNeut = idleZone - neutral;
   rSpeed = neutral;
   lSpeed = neutral;
-  if (abs(Ch2 - idleCh2) > buffer){
+  turnMultiply = 1; //turnFactor * (abs(plusminus)/250);
+  if (Ch2 - idleCh2 > buffer){
+    rSpeed = rSpeed + diff*plusminus;
+    lSpeed = lSpeed + plusminus; //- 2 * diffNeut    
+    if (abs(Ch1-idleCh1) > buffer){
+      rSpeed = rSpeed +turnMultiply*(Ch1 - idleCh1);
+      lSpeed = lSpeed - turnMultiply*(Ch1 - idleCh1); //- 2 * diffNeut
+    }
+  }
+  if (Ch2 - idleCh2 < -buffer){
     rSpeed = rSpeed + diff*plusminus;
     lSpeed = lSpeed + plusminus; //- 2 * diffNeut
+    if (abs(Ch1-idleCh1) > buffer){
+      rSpeed = rSpeed - diff*turnMultiply*(Ch1 - idleCh1);
+      lSpeed = lSpeed + turnMultiply*(Ch1 - idleCh1); //- 2 * diffNeut
+    }
   }
-  if (abs(Ch1-idleCh1) > buffer){
-    rSpeed = rSpeed + (Ch1 - idleCh1);
-    lSpeed = lSpeed - (Ch1 - idleCh1); //- 2 * diffNeut
+  if (Ch2 == 0)
+  {
+    rSpeed = neutral;
+    lSpeed = neutral;
   }
   autoLimits();
   R_Servo.writeMicroseconds(rSpeed);
@@ -357,15 +410,46 @@ void DriveServosRC()
 //**************************************************************
 void DriveArmRC()
 {
+  int Neutral = 1500;
+  int rcDeadZone = 150;
+  int servoSpeedOffset = 100;
+  int Ch2L;
   if (Ch2 > 2000) {
     Ch2 = 2000;
   }
   if (Ch2 < 1000) {
     Ch2 = 1000;
   }
-  Ch2 = 1500+(Ch2 - 1500)/10;
+
+  if (abs(Ch2-Neutral) < rcDeadZone){
+    Ch2 = Neutral;
+  }
+//  Ch2 = 1500+(Ch2 - 1500)/10;
+  if (Ch2 < Neutral){
+    Ch2L = Ch2+servoSpeedOffset;
+  }
+  if (Ch2 > Neutral){
+    Ch2L = Ch2 - servoSpeedOffset;
+  }
   ArmR.writeMicroseconds(Ch2);
   ArmL.writeMicroseconds(Ch2);
+
+  if (Ch1 > 2000) {
+    Ch1 = 2000;
+  }
+  if (Ch1 < 1000) {
+    Ch1 = 1000;
+  }
+  if (Ch1 > 1300 && Ch1 < 1800) {
+    Ch1 = 1500;
+  }
+  if(Ch1 > 1500 && Ch1 < 2000){
+    Ch1 = 1700;
+  }
+  if(Ch1 < 1500 & Ch1 > 1000){
+    Ch1 = 1300;
+  }
+  ArmM.writeMicroseconds(Ch1);
 }
 
 //*****************  Forward(int Dlay)   ***********************
@@ -373,8 +457,9 @@ void DriveArmRC()
 //**************************************************************
 void Forward(int Dlay)
 {
-  R_Servo.writeMicroseconds(neutral+doublefast);  // sets the servo position
-  L_Servo.writeMicroseconds(neutral+doublefast);   // sets the servo position
+  // PReviously doublefast
+  R_Servo.writeMicroseconds(neutral+slow);  // sets the servo position
+  L_Servo.writeMicroseconds(neutral-slow);   // sets the servo position
   delay(Dlay);
 }
 //*****************  Reverse(int Dlay)   ***********************
@@ -383,7 +468,7 @@ void Forward(int Dlay)
 void Reverse(int Dlay)
 {
   R_Servo.writeMicroseconds(neutral-slow);  // sets the servo position
-  L_Servo.writeMicroseconds(neutral-slow);   // sets the servo position
+  L_Servo.writeMicroseconds(neutral+slow);   // sets the servo position
   delay(Dlay);
 }
 //*****************  stopBot(int Dlay)   ***********************
@@ -400,19 +485,19 @@ void stopBot(int Dlay)
 //**************************************************************
 void TLeftSlow(int Dlay)
 {
-  rSpeed = neutral+fast;
-  lSpeed = neutral+slow;
+  lSpeed = neutral;
+  rSpeed = neutral + 1*fast;
   R_Servo.writeMicroseconds(rSpeed);  // sets the servo position
   L_Servo.writeMicroseconds(lSpeed);   // sets the servo position
   delay(Dlay);
 }
-//************* TRightSlow(int lVal,int Dlay) *******************
+//************* fa(int lVal,int Dlay) *******************
 //        Right turn with tapering speed and a duration
 //**************************************************************
 void TRightSlow(int Dlay)
 {
-  rSpeed = neutral+slow;
-  lSpeed = neutral+fast;
+  lSpeed = neutral - 1*fast;
+  rSpeed = neutral;
   R_Servo.writeMicroseconds(rSpeed);  // sets the servo position
   L_Servo.writeMicroseconds(lSpeed);   // sets the servo position
   delay(Dlay);
@@ -428,10 +513,10 @@ void TRightSlow(int Dlay)
 void PrintRC()
 { // print out the values you read in:
   Serial.print("lSpeed =====");
-  Serial.println(lSpeed);
+  Serial.println(lSpeed-neutral);
   Serial.print("rSpeed =====");
-  Serial.println(rSpeed);
-  
+  Serial.println(diff*(rSpeed-neutral));
+
   Serial.println(" RC Control Mode ");
   Serial.print("Value Ch1 = ");
   Serial.println(Ch1);
@@ -466,5 +551,4 @@ void printSensors() {
   //   Serial.println("Biased to the Right");
   // }
   Serial.println("cx = "+(String)cx);
-  delay(1000);
 }
