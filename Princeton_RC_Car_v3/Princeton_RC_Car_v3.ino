@@ -8,6 +8,7 @@
   Servo ArmR;
   Servo ArmL;
   Servo ArmM;
+  Servo Latch;
   int Rwheel;               // Variable to hold R wheel speed
   int Lwheel;               // Variable to hold L wheel speed
   int LeftMaxIn;        //Variable to hold Max Data In
@@ -46,6 +47,9 @@
   int proxDiff;
   int proxMax = 0.9;
 
+  int iteration = 0;
+  float usefulinfo;
+
 // CALIBRATE
 float deadZone = .1;
 int fast = 150, slow = 80, neutral = 1500, doublefast = 200;
@@ -78,6 +82,7 @@ void setup() {
   ArmR.attach(A0);
   ArmL.attach(A1);
   ArmM.attach(A2);
+  Latch.attach(2);
   rSpeed = neutral + diff*slow;
   lSpeed = neutral + slow;
 
@@ -99,7 +104,7 @@ void setup() {
 //************************  loop()  ****************************
 //**********************  Main Loop  ***************************
 //**************************************************************
-void loop() {
+void loop() {  
   Ch5Check();
 }
 
@@ -154,10 +159,23 @@ void autonomous() {
   rSpeed = neutralRC;
   lSpeed = neutralRC;
   float lightDeadzone = 0.1;
-  rcScale = 0.1;
+  rcScale = 0.5;
 
-//  pixyTrack();
+  cx = -pixyTrack();
+
   centerTot();
+  // if (proxFront > 400){
+  //   Reverse(100);
+  // }
+  // else if (dxIR > lightDeadzone){
+  //   TLeftSlow(10);
+  // }
+  // else if (dxIR < -lightDeadzone){
+  //   TRightSlow(10); 
+  // }
+  // else {
+  //   Forward(10);
+  // }
 
   if(abs(dxIR) > abs(cx)){
     cx = dxIR;
@@ -168,57 +186,62 @@ void autonomous() {
       lWheel = (float)neutralRC + rcScale * cx * (float)neutralRC;
       rSpeed = (int)rWheel;
       lSpeed = (int)lWheel;
-      Serial.println("wocky slush");
     }
-    if(cx > lightDeadzone){
+    else if(cx > lightDeadzone){
       rWheel = (float)neutralRC + rcScale * cx * (float)neutralRC;
       lWheel = (float)neutralRC - 1/2 * rcScale * cx * (float)neutralRC;
       rSpeed = (int)rWheel;
       lSpeed = (int)lWheel;
     }
+    // // else if(abs(cx) < lightDeadzone){
+    //   rWheel = neutralRC + fast;
+    //   lWheel = neutralRC - fast;
+    // }
   }
-//  else if(hit == 1){
-//    if(proxLeft >= proxMax){
-//      // Reverse
-//      lSpeed = neutralRC + fast;
-//      rSpeed = neutralRC - fast;
-//      autoDrive(lSpeed, rSpeed, dlay); 
-//      // Left Wheels Spin Forward
-//
-//      lSpeed = neutralRC - fast;
-//      rSpeed = neutralRC;
-//      autoDrive(lSpeed, rSpeed, dlay); 
-//      lSpeed = neutralRC;
-//      rSpeed = neutralRC;
-//    }
-//    if(proxRight >= proxMax){
-//      // Reverse
-//      lSpeed = neutralRC + fast;
-//      rSpeed = neutralRC - fast;
-//
-//      // Right Wheels Spin Forward
-//      lSpeed = neutralRC;
-//      rSpeed = neutralRC + fast;
-//      autoDrive(lSpeed, rSpeed, dlay);
-//      lSpeed = neutralRC;
-//      rSpeed = neutralRC;
-//    }
-//  }
-  Serial.print("cx =");
-  Serial.println(cx);
-  Serial.print("hit = ");
-  Serial.println(hit);
-  Serial.print("dxIR = ");
-  Serial.println(dxIR);
-  Serial.print("lSpeed =");
-  Serial.println(lWheel);
-  Serial.print("rSpeed =");
-  Serial.println(rWheel);
+
+  // else if(hit == 1){
+  //   if(proxLeft >= proxMax){
+  //     // Reverse
+  //     lSpeed = neutralRC + fast;
+  //     rSpeed = neutralRC - fast;
+  //     autoDrive(lSpeed, rSpeed, dlay); 
+  //     // Left Wheels Spin Forward
+
+  //     lSpeed = neutralRC - fast;
+  //     rSpeed = neutralRC;
+  //     autoDrive(lSpeed, rSpeed, dlay); 
+  //     lSpeed = neutralRC;
+  //     rSpeed = neutralRC;
+  //   }
+  //   if(proxRight >= proxMax){
+  //     // Reverse
+  //     lSpeed = neutralRC + fast;
+  //     rSpeed = neutralRC - fast;
+
+  //     // Right Wheels Spin Forward
+  //     lSpeed = neutralRC;
+  //     rSpeed = neutralRC + fast;
+  //     autoDrive(lSpeed, rSpeed, dlay);
+  //     lSpeed = neutralRC;
+  //     rSpeed = neutralRC;
+  //   }
+  // }
+
+  // if(iteration = 1){armSequence()}
+  // else if(iteration = 2){latchSequence}
+
+  // Serial.print("hit = ");
+  // Serial.println(hit);
+  // Serial.print("lSpeed =");
+  // Serial.println(lWheel);
+  // Serial.print("rSpeed =");
+  // Serial.println(rWheel);
   printSensors();
-  cx = 0;
+
   autoDrive(lSpeed, rSpeed, dlay);
-  delay(10);
+  // delay(10);
 }
+
 //**********************  Pixy Tracking  ***********************
 //**************************************************************
 // Tracking Regime
@@ -245,36 +268,31 @@ float pixyTrack() {
     // cy = mapfloat(cy, 0, 200, 1, -1);
     // area = width * height;
   }
-  else {
-    cont += 1;
-    if (cont == 100) {
-      // Serial.println("dx3");
-      cont = 0;
-      cx = 0;
-    }
-    }
-    return cx;
+  // else {
+  //   cont += 1;
+  //   if (cont == 100) {
+  //     // Serial.println("dx3");
+  //     cont = 0;
+  //     cx = 0;
+  //   }
+  // }
+  return cx;
 }
 
-void driveDx()
-{
-  float dx = pixyTrack();
+// void driveDx()
+// {
+//   float dx = pixyTrack();
  
-  // Serial.println(dx);
-  if (dx > -deadZone && dx < deadZone){
-    Forward(10);
-  }
-  if (dx <= -deadZone) {
-    TLeftSlow(10);
-  }
-  else if (dx >= deadZone) {
-    TRightSlow(10);
-  }
-  // Serial.print("rSpeed =");
-  // Serial.println(abs(rSpeed-1500));
-  // Serial.print("lSpeed =");
-  // Serial.println(abs(lSpeed-1500));
-}
+//   if (dx > -deadZone && dx < deadZone){
+//     Forward(10);
+//   }
+//   if (dx <= -deadZone) {
+//     TLeftSlow(10);
+//   }
+//   else if (dx >= deadZone) {
+//     TRightSlow(10);
+//   }
+// }
 
 float mapfloat(long x, long in_min, long in_max, long out_min, long out_max){
   return (float)(x-in_min)*(out_max - out_min) / (float)(in_max-in_min) + out_min;
@@ -304,33 +322,28 @@ void centerTot(){
   proxFrontF = (float)proxFront / 550;
   proxLeftF = (float)proxLeft / 550;
   proxRightF = (float)proxRight / 550;
-  // Normalize Functions
-//  proxLeft = mapfloat(proxLeft, 0, 450, 0, 1);
-//  proxRight = mapfloat(proxRight, 0, 450, 0, 1);
-
   float proxDiffF = proxRightF - proxLeftF;
-//  proxDiff = proxRight - proxLeft;
- Serial.print("proxLeft =");
-  Serial.println(proxLeftF);
-   Serial.print("proxRight =");
-  Serial.println(proxRightF);
-  
-  Serial.print("proxDiff =");
-  Serial.println(proxDiffF);
+  // printSensors();
+
   if(abs(proxDiffF) < deadzoneIR){
     dxIR = 0;
-    hit = 0;
   }
-  if(abs(proxDiffF) > deadzoneIR){
+  else if(abs(proxDiffF) > deadzoneIR){
     dxIR = proxDiffF;
-    hit = 0;
-
   }
+  hit = 0;
+
+  usefulinfo = proxFrontF;
+
+  if (proxFrontF >= proxMax){
+    iteration = iteration + 1;
+  }
+
 //  if(proxDiffF >= proxMax){
 //    hit = 1;
 //    dxIR = 0;
 //  }
-//
+
 //  if(proxDiffF <= -proxMax){
 //    hit = 1;
 //    dxIR = 0;
@@ -360,8 +373,7 @@ void centerTot(){
 //   printSensors();
 //  if(proxFront > 550){
 //    Reverse(1000);
-  }
-//   delay(200);
+}
  
 
 //********************** setLimits() ***************************
@@ -421,6 +433,35 @@ void pulseMotors() {
   //  PrintWheelCalcs(); //REMEMBER: printing values slows reaction times
 }
 
+void armSequence() {
+  int servoSpeedOffsetF = 0;
+  int servoSpeedOffsetR = 10;
+
+  ArmR.writeMicroseconds(1200);
+  ArmL.writeMicroseconds(1200);
+  delay(13630);
+  ArmR.writeMicroseconds(1500);
+  ArmL.writeMicroseconds(1500);  
+
+  ArmM.writeMicroseconds(1350);
+  delay(2000);
+
+  ArmR.writeMicroseconds(1800);
+  ArmL.writeMicroseconds(1800);
+  delay(13500);
+
+  ArmR.writeMicroseconds(1200);
+  ArmL.writeMicroseconds(1200);
+  delay(13630);
+  ArmR.writeMicroseconds(1500);
+  ArmL.writeMicroseconds(1500);  
+}
+
+void latchSequence() {
+  Latch.write(0);
+  delay(5000);
+}
+
 // ============================================================================
 // =========================== MOVEMENT COMMANDS ==============================
 // ============================================================================
@@ -432,6 +473,7 @@ void pulseMotors() {
 //**************************************************************
 void DriveServosRC()
 {
+  iteration = 0;
   int buffer = 100;
   int idleCh2 = 1500; // Ch2 = forward speed
   int idleCh1 = 1500; // Ch1 = R/L turns
@@ -465,6 +507,8 @@ void DriveServosRC()
   autoLimits();
   R_Servo.writeMicroseconds(rSpeed);
   L_Servo.writeMicroseconds(lSpeed);
+
+  RotateLatch();
  
   //  if(((Ch2 - idleZone) < 0) && (Ch2 - idleZone) < (-deadZone)){
   //   rSpeed = -(Ch2 - idleZone) + neutral ;
@@ -497,7 +541,7 @@ void DriveArmRC()
   if (abs(Ch2-Neutral) < rcDeadZone){
     Ch2 = Neutral;
   }
-//  Ch2 = 1500+(Ch2 - 1500)/10;
+  //  Ch2 = 1500+(Ch2 - 1500)/10;
   if (Ch2 < Neutral){
     Ch2L = Ch2 + servoSpeedOffsetR;
   }
@@ -525,6 +569,22 @@ void DriveArmRC()
   ArmM.writeMicroseconds(Ch1);
 }
 
+void RotateLatch()
+{
+  float turn = (float)Ch4 - 1500;  
+  if (turn < -500){turn = -500;}
+  else if (turn > 500){turn = 500;}
+  turn = (turn + 500)*135/1000;
+  Serial.println(turn);
+  if (turn > 70){
+    Latch.write(0);
+    Serial.println("0");}
+  else{
+    Latch.write(90);
+    Serial.println("90");
+  }
+}
+
 //*****************  Forward(int Dlay)   ***********************
 //              Move the robot Slowly Forward
 //**************************************************************
@@ -540,8 +600,8 @@ void Forward(int Dlay)
 //**************************************************************
 void Reverse(int Dlay)
 {
-  R_Servo.writeMicroseconds(neutral-1*slow);  // sets the servo position
-  L_Servo.writeMicroseconds(neutral+1*slow);   // sets the servo position
+  R_Servo.writeMicroseconds(neutral-slow);  // sets the servo position
+  L_Servo.writeMicroseconds(neutral+slow);   // sets the servo position
   delay(Dlay);
 }
 //*****************  stopBot(int Dlay)   ***********************
@@ -617,9 +677,11 @@ void PrintRC()
 // Print the prox sensor values ***** Slows robot when in use!!!
 //**************************************************************
 void printSensors() {
-  Serial.println("Front Prox Sensor Reads " + (String)proxFront);
-  Serial.println("Left Prox Sensor Reads " + (String)proxLeft);
-  Serial.println("Right Prox Sensor Reads " + (String)proxRight);
+  Serial.println("Front Prox Sensor Reads " + (String)proxFrontF);
+  Serial.println("Left Prox Sensor Reads " + (String)proxLeftF);
+  Serial.println("Right Prox Sensor Reads " + (String)proxRightF);
+  Serial.println("dxIR = " + (String)dxIR);
+  Serial.println("proxDiffF = "+(String)usefulinfo);
   // if (proxDiff == 0){
   //   Serial.println("Centered");
   // }
@@ -630,4 +692,5 @@ void printSensors() {
   //   Serial.println("Biased to the Right");
   // }
   Serial.println("cx = "+(String)cx);
+  Serial.println("hit="+(String)hit);
 }
