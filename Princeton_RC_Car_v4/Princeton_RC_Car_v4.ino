@@ -51,14 +51,14 @@ void setup() {
   pinMode(A5, INPUT); //I connected this to Chan1 of the Receiver
   pinMode(A4, INPUT); //I connected this to Chan2 of the Receiver
   pinMode(A3, INPUT); //I connected this to Chan3 of the Receiver
-//  pinMode(A2, INPUT); //I connected this to Chan4 of the Receiver
-//  pinMode(A1, INPUT); //I connected this to Chan5 of the Receiver
-//  pinMode(A0, INPUT); //I connected this to Chan6 of the Receiver
+  //  pinMode(A2, INPUT); //I connected this to Chan4 of the Receiver
+  //  pinMode(A1, INPUT); //I connected this to Chan5 of the Receiver
+  //  pinMode(A0, INPUT); //I connected this to Chan6 of the Receiver
   pinMode(LED, OUTPUT);//Onboard LED to output for diagnostics
 
-//  pinMode(8, OUTPUT);
-//  pinMode(9, INPUT);
-//  pinMode(11, INPUT);
+  //  pinMode(8, OUTPUT);
+  //  pinMode(9, INPUT);
+  //  pinMode(11, INPUT);
  
   pinMode(proxFrontPin,INPUT);
   pinMode(proxLeftPin,INPUT);
@@ -73,8 +73,8 @@ void setup() {
   rSpeed = neutral + diff*slow;
   lSpeed = neutral + slow;
 
-//  ArmR.attach(A9);
-//  ArmL.attach(A8);
+  // ArmR.attach(A9);
+  // ArmL.attach(A8);
  
   //Flash the LED on and Off 10x before entering main loop
   for (int i = 0; i < 10; i++) {
@@ -101,25 +101,20 @@ void loop() {
 void Ch5Check() {
   Ch6 = pulseIn(8,HIGH);
   if(Ch6 < 1600){
-  Ch5 = pulseIn(7, HIGH); // Capture pulse width on Channel 5
-  if (Ch5 > 1600) {
-    digitalWrite(LED, HIGH);
-    autonomous();
-  }
-  else {
-    Ch1 = pulseIn(3, HIGH, 115200); // Capture pulse width on Channel 1
-    Ch2 = pulseIn(4, HIGH, 115200); // Capture pulse width on Channel 2
-    Ch3 = pulseIn(5, HIGH);  // Capture pulse width on Channel 3
-    Ch4 = pulseIn(6, HIGH);  // Capture pulse width on Channel 4
-    digitalWrite(LED, LOW);
-    DriveServosRC();
-//    PrintRC();
-  }
-
-  // Ch6 = pulseIn(A0,HIGH);
-  // if (Ch6 > 1600){
-  //   ==========================================================RC();
-  // }
+    Ch5 = pulseIn(7, HIGH); // Capture pulse width on Channel 5
+    if (Ch5 > 1600) {
+      digitalWrite(LED, HIGH);
+      autonomous();
+    }
+    else {
+      Ch1 = pulseIn(3, HIGH, 115200); // Capture pulse width on Channel 1
+      Ch2 = pulseIn(4, HIGH, 115200); // Capture pulse width on Channel 2
+      Ch3 = pulseIn(5, HIGH);  // Capture pulse width on Channel 3
+      Ch4 = pulseIn(6, HIGH);  // Capture pulse width on Channel 4
+      digitalWrite(LED, LOW);
+      DriveServosRC();
+    //  PrintRC();
+    }
   }
   else if(Ch6 > 1600){
       Ch1 = pulseIn(3, HIGH, 115200); // Capture pulse width on Channel 1dr
@@ -140,7 +135,7 @@ void Ch5Check() {
 void autonomous() {
   driveDx();
   centerTot();
-  delay(100);
+  // delay(100);
 }
 
 //**********************  Pixy Tracking  ***********************
@@ -217,7 +212,7 @@ void centerTot(){
     proxFront = proxFront + analogRead(proxFrontPin);
     proxLeft = proxLeft + analogRead(proxLeftPin);
     proxRight = proxRight + analogRead(proxRightPin);
-    delay(10);
+    // delay(10);
   }
   proxFront = proxFront / 5;
   proxLeft = proxLeft / 5;
@@ -229,29 +224,27 @@ void centerTot(){
   // proxDiff < 0, WE ARE BIASED RIGHT >> GO LEFT
 
   // EMERGENCY STOP
-//  if (proxFront >= 300) { //changed from 500
-//    Reverse(10);
-//    TRightSlow(10);
-//  }
+  //  if (proxFront >= 300) { //changed from 500
+  //    Reverse(10);
+  //    TRightSlow(10);
+  //  }
   // REALIGNMENT ALGORITHM
-//  if (proxDiff >= -50 || proxDiff <= 50){
-//    Forward(10);
-//  }
+  if (proxDiff >= -50 || proxDiff <= 50){
+    Forward(10);
+  }
   if (proxDiff > 50){
-//    Reverse(200);
+  //    Reverse(200);
     TRightSlow(50);
   }
   else if (proxDiff < -50){
-//    Reverse(200);
+  //    Reverse(200);
     TLeftSlow(50);
   }
    printSensors();
   if(proxFront > 550){
-    Reverse(1000);
+    Reverse(100);
   }
-//   delay(200);
- 
-
+  //   delay(200); 
 }
 
 //********************** setLimits() ***************************
@@ -322,29 +315,29 @@ void pulseMotors() {
 //**************************************************************
 void DriveServosRC()
 {
- int buffer = 100;
- int idleCh2 = 1500;
- int idleCh1 = 1500;
- int plusminus = Ch2 - idleCh2;
- int turnFactor = 10, turnMultiply;
-//  int diffNeut = idleZone - neutral;
+  int buffer = 100;
+  int idleCh2 = 1500; // Ch2 = forward speed
+  int idleCh1 = 1500; // Ch1 = R/L turns
+  int fwdcommand = Ch2 - idleCh2, turncommand = Ch1 - idleCh1;
+  int turnFactor = 10, turnMultiply;
+  //  int diffNeut = idleZone - neutral;
   rSpeed = neutral;
   lSpeed = neutral;
   turnMultiply = 1; //turnFactor * (abs(plusminus)/250);
-  if (Ch2 - idleCh2 > buffer){
-    rSpeed = rSpeed + diff*plusminus;
-    lSpeed = lSpeed + plusminus; //- 2 * diffNeut    
-    if (abs(Ch1-idleCh1) > buffer){
-      rSpeed = rSpeed +turnMultiply*(Ch1 - idleCh1);
-      lSpeed = lSpeed - turnMultiply*(Ch1 - idleCh1); //- 2 * diffNeut
+  if (fwdcommand > buffer){
+    rSpeed = rSpeed + fwdcommand;
+    lSpeed = lSpeed + diff*fwdcommand; //- 2 * diffNeut    
+    if (abs(turncommand) > buffer){
+      rSpeed = rSpeed - turnMultiply*turncommand;
+      lSpeed = lSpeed - turnMultiply*turncommand; //- 2 * diffNeut
     }
   }
-  if (Ch2 - idleCh2 < -buffer){
-    rSpeed = rSpeed + diff*plusminus;
-    lSpeed = lSpeed + plusminus; //- 2 * diffNeut
-    if (abs(Ch1-idleCh1) > buffer){
-      rSpeed = rSpeed - diff*turnMultiply*(Ch1 - idleCh1);
-      lSpeed = lSpeed + turnMultiply*(Ch1 - idleCh1); //- 2 * diffNeut
+  if (fwdcommand < -buffer){
+    rSpeed = rSpeed + fwdcommand;
+    lSpeed = lSpeed + diff*fwdcommand; //- 2 * diffNeut
+    if (abs(turncommand) > buffer){
+      rSpeed = rSpeed + turnMultiply*turncommand;
+      lSpeed = lSpeed + turnMultiply*turncommand; //- 2 * diffNeut
     }
   }
   if (Ch2 == 0)
@@ -356,12 +349,12 @@ void DriveServosRC()
   R_Servo.writeMicroseconds(rSpeed);
   L_Servo.writeMicroseconds(lSpeed);
  
-//  if(((Ch2 - idleZone) < 0) && (Ch2 - idleZone) < (-deadZone)){
-//   rSpeed = -(Ch2 - idleZone) + neutral ;
-//   lSpeed = (neutral +  (Ch2 - idleZone)); //- 2 * diffNeut
-//   R_Servo.writeMicroseconds(rSpeed);
-//   L_Servo.writeMicroseconds(lSpeed);
-//  }
+  //  if(((Ch2 - idleZone) < 0) && (Ch2 - idleZone) < (-deadZone)){
+  //   rSpeed = -(Ch2 - idleZone) + neutral ;
+  //   lSpeed = (neutral +  (Ch2 - idleZone)); //- 2 * diffNeut
+  //   R_Servo.writeMicroseconds(rSpeed);
+  //   L_Servo.writeMicroseconds(lSpeed);
+  //  }
 }
 
 //*******************  Drive()  ************************
