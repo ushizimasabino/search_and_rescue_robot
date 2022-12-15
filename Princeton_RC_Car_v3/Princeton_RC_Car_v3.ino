@@ -14,7 +14,11 @@
   int RightMaxIn;      //Variable to hold Max Data In
   int CalcHold;        //Variable to remp hold calculations for steering stick corections
   int rSpeed, lSpeed;       // Variables to hold autonomous speed changes for each wheel
-
+  float rcScale;
+  int neutralRC = 1500;
+  float rWheel = 1500;
+  float lWheel = 1500;
+  int hit = 0;
 // Define RC Variables
   int Ch1,Ch2,Ch3,Ch4,Ch5,Ch6;
   const int LED = 13;       // Onboard LED location
@@ -23,7 +27,7 @@
   Pixy pixy;
   int signature, x, y, width, height;
   int cont = 0;
-  float cx, cy, area;
+  float cx, cy, area, dxIR;
   float maxArea = 315;
   uint16_t blocks;
 
@@ -34,12 +38,16 @@
 
 // Prox Sensor Values
   int proxFront;
+  float proxFrontF;
+  float proxLeftF;
+  float proxRightF;
   int proxLeft;
   int proxRight;
   int proxDiff;
+  int proxMax = 0.9;
 
 // CALIBRATE
-float deadZone = .3;
+float deadZone = .1;
 int fast = 150, slow = 80, neutral = 1500, doublefast = 200;
 int diff = -1; // Ratio of Lspeeds to Rspeeds
 
@@ -138,11 +146,79 @@ void Ch5Check() {
 //********************** Autonomous Mode ***********************
 //**************************************************************
 void autonomous() {
-  driveDx();
-  centerTot();
-  delay(100);
-}
+  cx = 0;
+  hit = 0;
+  int dlay = 100;
+  rWheel = 1500;
+  lWheel = 1500;
+  rSpeed = neutralRC;
+  lSpeed = neutralRC;
+  float lightDeadzone = 0.1;
+  rcScale = 0.1;
 
+//  pixyTrack();
+  centerTot();
+
+  if(abs(dxIR) > abs(cx)){
+    cx = dxIR;
+  }
+  if(hit < 1){
+    if(cx < -lightDeadzone){
+      rWheel = -1/2 * rcScale * cx * (float)neutralRC + (float)neutralRC;
+      lWheel = (float)neutralRC + rcScale * cx * (float)neutralRC;
+      rSpeed = (int)rWheel;
+      lSpeed = (int)lWheel;
+      Serial.println("wocky slush");
+    }
+    if(cx > lightDeadzone){
+      rWheel = (float)neutralRC + rcScale * cx * (float)neutralRC;
+      lWheel = (float)neutralRC - 1/2 * rcScale * cx * (float)neutralRC;
+      rSpeed = (int)rWheel;
+      lSpeed = (int)lWheel;
+    }
+  }
+//  else if(hit == 1){
+//    if(proxLeft >= proxMax){
+//      // Reverse
+//      lSpeed = neutralRC + fast;
+//      rSpeed = neutralRC - fast;
+//      autoDrive(lSpeed, rSpeed, dlay); 
+//      // Left Wheels Spin Forward
+//
+//      lSpeed = neutralRC - fast;
+//      rSpeed = neutralRC;
+//      autoDrive(lSpeed, rSpeed, dlay); 
+//      lSpeed = neutralRC;
+//      rSpeed = neutralRC;
+//    }
+//    if(proxRight >= proxMax){
+//      // Reverse
+//      lSpeed = neutralRC + fast;
+//      rSpeed = neutralRC - fast;
+//
+//      // Right Wheels Spin Forward
+//      lSpeed = neutralRC;
+//      rSpeed = neutralRC + fast;
+//      autoDrive(lSpeed, rSpeed, dlay);
+//      lSpeed = neutralRC;
+//      rSpeed = neutralRC;
+//    }
+//  }
+  Serial.print("cx =");
+  Serial.println(cx);
+  Serial.print("hit = ");
+  Serial.println(hit);
+  Serial.print("dxIR = ");
+  Serial.println(dxIR);
+  Serial.print("lSpeed =");
+  Serial.println(lWheel);
+  Serial.print("rSpeed =");
+  Serial.println(rWheel);
+  printSensors();
+  cx = 0;
+  autoDrive(lSpeed, rSpeed, dlay);
+  delay(10);
+}
 //**********************  Pixy Tracking  ***********************
 //**************************************************************
 // Tracking Regime
@@ -165,7 +241,7 @@ float pixyTrack() {
     // y = pixy.ccc.blocks[0].m_y;
     cx = (x + (width / 2));
     // cy = (x + (width / 2));
-    cx = mapfloat(cx, 0, 316, -1, 1);
+    cx = mapfloat(cx, 0, 320, -1, 1);
     // cy = mapfloat(cy, 0, 200, 1, -1);
     // area = width * height;
   }
@@ -208,21 +284,57 @@ float mapfloat(long x, long in_min, long in_max, long out_min, long out_max){
 // *********** use proximity sensors to center Tot *************
 // *************************************************************
 void centerTot(){
+//  hit = 0;
+  float deadzoneIR = 0.1;
   proxFront = analogRead(proxFrontPin);
   proxLeft = analogRead(proxLeftPin);
   proxRight = analogRead(proxRightPin);
 // 
-//  // take 5 samples and average
-  for (int i = 0; i <= 3; i++) {
-    proxFront = proxFront + analogRead(proxFrontPin);
-    proxLeft = proxLeft + analogRead(proxLeftPin);
-    proxRight = proxRight + analogRead(proxRightPin);
-    delay(10);
+  // take 5 samples and average
+//  for (int i = 0; i <= 3; i++) {
+//    proxFront = proxFront + analogRead(proxFrontPin);
+//    proxLeft = proxLeft + analogRead(proxLeftPin);
+//    proxRight = proxRight + analogRead(proxRightPin);
+//    delay(1);
+//  }
+//  proxFront = proxFront / 5;
+//  proxLeft = proxLeft / 5;
+//  proxRight = proxRight / 5;
+
+  proxFrontF = (float)proxFront / 550;
+  proxLeftF = (float)proxLeft / 550;
+  proxRightF = (float)proxRight / 550;
+  // Normalize Functions
+//  proxLeft = mapfloat(proxLeft, 0, 450, 0, 1);
+//  proxRight = mapfloat(proxRight, 0, 450, 0, 1);
+
+  float proxDiffF = proxRightF - proxLeftF;
+//  proxDiff = proxRight - proxLeft;
+ Serial.print("proxLeft =");
+  Serial.println(proxLeftF);
+   Serial.print("proxRight =");
+  Serial.println(proxRightF);
+  
+  Serial.print("proxDiff =");
+  Serial.println(proxDiffF);
+  if(abs(proxDiffF) < deadzoneIR){
+    dxIR = 0;
+    hit = 0;
   }
-  proxFront = proxFront / 5;
-  proxLeft = proxLeft / 5;
-  proxRight = proxRight / 5;
-  proxDiff = proxLeft - proxRight;
+  if(abs(proxDiffF) > deadzoneIR){
+    dxIR = proxDiffF;
+    hit = 0;
+
+  }
+//  if(proxDiffF >= proxMax){
+//    hit = 1;
+//    dxIR = 0;
+//  }
+//
+//  if(proxDiffF <= -proxMax){
+//    hit = 1;
+//    dxIR = 0;
+//  }
   // NOTE:
   // proxDiff == 0 , WE ARE CENTERED
   // proxDiff > 0, WE ARE BIASED LEFT >> GO RIGHT
@@ -237,22 +349,20 @@ void centerTot(){
 //  if (proxDiff >= -50 || proxDiff <= 50){
 //    Forward(10);
 //  }
-  if (proxDiff > 50){
-//    Reverse(200);
-    TRightSlow(50);
-  }
-  else if (proxDiff < -50){
-//    Reverse(200);
-    TLeftSlow(50);
-  }
-   printSensors();
-  if(proxFront > 550){
-    Reverse(1000);
+//  if (proxDiff > 50){
+////    Reverse(200);
+//    TRightSlow(50);
+//  }
+//  else if (proxDiff < -50){
+////    Reverse(200);
+//    TLeftSlow(50);
+//  }
+//   printSensors();
+//  if(proxFront > 550){
+//    Reverse(1000);
   }
 //   delay(200);
  
-
-}
 
 //********************** setLimits() ***************************
 //*******  Make sure values never exceed ranges  ***************
@@ -322,29 +432,29 @@ void pulseMotors() {
 //**************************************************************
 void DriveServosRC()
 {
- int buffer = 100;
- int idleCh2 = 1500;
- int idleCh1 = 1500;
- int plusminus = Ch2 - idleCh2;
- int turnFactor = 10, turnMultiply;
-//  int diffNeut = idleZone - neutral;
+  int buffer = 100;
+  int idleCh2 = 1500; // Ch2 = forward speed
+  int idleCh1 = 1500; // Ch1 = R/L turns
+  int fwdcommand = Ch2 - idleCh2, turncommand = Ch1 - idleCh1;
+  int turnFactor = 10, turnMultiply;
+  //  int diffNeut = idleZone - neutral;
   rSpeed = neutral;
   lSpeed = neutral;
   turnMultiply = 1; //turnFactor * (abs(plusminus)/250);
-  if (Ch2 - idleCh2 > buffer){
-    rSpeed = rSpeed + diff*plusminus;
-    lSpeed = lSpeed + plusminus; //- 2 * diffNeut    
-    if (abs(Ch1-idleCh1) > buffer){
-      rSpeed = rSpeed +turnMultiply*(Ch1 - idleCh1);
-      lSpeed = lSpeed - turnMultiply*(Ch1 - idleCh1); //- 2 * diffNeut
+  if (fwdcommand > buffer){
+    rSpeed = rSpeed + fwdcommand;
+    lSpeed = lSpeed + diff*fwdcommand; //- 2 diffNeut
+    if (abs(turncommand) > buffer){
+      rSpeed = rSpeed - turnMultiply*turncommand;
+      lSpeed = lSpeed - turnMultiply*turncommand; //- 2 * diffNeut
     }
   }
-  if (Ch2 - idleCh2 < -buffer){
-    rSpeed = rSpeed + diff*plusminus;
-    lSpeed = lSpeed + plusminus; //- 2 * diffNeut
-    if (abs(Ch1-idleCh1) > buffer){
-      rSpeed = rSpeed - diff*turnMultiply*(Ch1 - idleCh1);
-      lSpeed = lSpeed + turnMultiply*(Ch1 - idleCh1); //- 2 * diffNeut
+  if (fwdcommand < -buffer){
+    rSpeed = rSpeed + fwdcommand;
+    lSpeed = lSpeed + diff*fwdcommand; //- 2 diffNeut
+    if (abs(turncommand) > buffer){
+      rSpeed = rSpeed + turnMultiply*turncommand;
+      lSpeed = lSpeed + turnMultiply*turncommand; //- 2 * diffNeut
     }
   }
   if (Ch2 == 0)
@@ -356,12 +466,12 @@ void DriveServosRC()
   R_Servo.writeMicroseconds(rSpeed);
   L_Servo.writeMicroseconds(lSpeed);
  
-//  if(((Ch2 - idleZone) < 0) && (Ch2 - idleZone) < (-deadZone)){
-//   rSpeed = -(Ch2 - idleZone) + neutral ;
-//   lSpeed = (neutral +  (Ch2 - idleZone)); //- 2 * diffNeut
-//   R_Servo.writeMicroseconds(rSpeed);
-//   L_Servo.writeMicroseconds(lSpeed);
-//  }
+  //  if(((Ch2 - idleZone) < 0) && (Ch2 - idleZone) < (-deadZone)){
+  //   rSpeed = -(Ch2 - idleZone) + neutral ;
+  //   lSpeed = (neutral +  (Ch2 - idleZone)); //- 2 * diffNeut
+  //   R_Servo.writeMicroseconds(rSpeed);
+  //   L_Servo.writeMicroseconds(lSpeed);
+  //  }
 }
 
 //*******************  Drive()  ************************
@@ -449,7 +559,7 @@ void stopBot(int Dlay)
 void TLeftSlow(int Dlay)
 {
   lSpeed = neutral;
-  rSpeed = neutral + 1.4*fast;
+  rSpeed = neutral + 1*fast;
   R_Servo.writeMicroseconds(rSpeed);  // sets the servo position
   L_Servo.writeMicroseconds(lSpeed);   // sets the servo position
   delay(Dlay);
@@ -460,13 +570,18 @@ void TLeftSlow(int Dlay)
 //**************************************************************
 void TRightSlow(int Dlay)
 {
-  lSpeed = neutral - 1.4*fast;
+  lSpeed = neutral - 1*fast;
   rSpeed = neutral;
   R_Servo.writeMicroseconds(rSpeed);  // sets the servo position
   L_Servo.writeMicroseconds(lSpeed);   // sets the servo position
   delay(Dlay);
 }
 
+void autoDrive(int lSpeed, int rSpeed, int Dlay){
+  R_Servo.writeMicroseconds(rSpeed);
+  L_Servo.writeMicroseconds(lSpeed);
+  delay(Dlay);
+}
 // ============================================================================
 // =========================== RUN DIAGNOSTICS ================================
 // ============================================================================
