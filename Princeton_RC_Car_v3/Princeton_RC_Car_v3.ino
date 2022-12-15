@@ -182,9 +182,9 @@ void Ch5Check() {
 //**************************************************************
 void autonomous() {
   driveDx();
-//   centerTot();
+  //   centerTot();
   // Serial.println("dddd");
-//  Ch5Check();
+  //  Ch5Check();
 }
 
 //**********************  Pixy Tracking  ***********************
