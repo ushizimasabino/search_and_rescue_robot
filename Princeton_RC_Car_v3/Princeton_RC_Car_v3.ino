@@ -156,10 +156,12 @@ void autonomous() {
   int dlay = 100;
   rWheel = 1500;
   lWheel = 1500;
+  ArmR.writeMicroseconds(1500);
+  ArmL.writeMicroseconds(1500);
   rSpeed = neutralRC;
   lSpeed = neutralRC;
   float lightDeadzone = 0.1;
-  rcScale = 0.5;
+  rcScale = 0.45;
 
   cx = -pixyTrack();
 
@@ -193,9 +195,11 @@ void autonomous() {
       rSpeed = (int)rWheel;
       lSpeed = (int)lWheel;
     }
-    // // else if(abs(cx) < lightDeadzone){
+    // else if(abs(cx) < lightDeadzone){
     //   rWheel = neutralRC + fast;
     //   lWheel = neutralRC - fast;
+    //   rSpeed = (int)rWheel;
+    //   lSpeed = (int)lWheel;
     // }
   }
 
@@ -227,8 +231,8 @@ void autonomous() {
   //   }
   // }
 
-  // if(iteration = 1){armSequence()}
-  // else if(iteration = 2){latchSequence}
+  if(iteration == 1){armSequence();}
+  else if(iteration == 3){latchSequence();}
 
   // Serial.print("hit = ");
   // Serial.println(hit);
@@ -236,9 +240,11 @@ void autonomous() {
   // Serial.println(lWheel);
   // Serial.print("rSpeed =");
   // Serial.println(rWheel);
-  printSensors();
+  // printSensors();
 
   autoDrive(lSpeed, rSpeed, dlay);
+  autoDrive(1350, 1650, 10);
+  delay(75);
   // delay(10);
 }
 
@@ -303,7 +309,7 @@ float mapfloat(long x, long in_min, long in_max, long out_min, long out_max){
 // *************************************************************
 void centerTot(){
 //  hit = 0;
-  float deadzoneIR = 0.1;
+  float deadzoneIR = 0.01;
   proxFront = analogRead(proxFrontPin);
   proxLeft = analogRead(proxLeftPin);
   proxRight = analogRead(proxRightPin);
@@ -335,8 +341,8 @@ void centerTot(){
 
   usefulinfo = proxFrontF;
 
-  if (proxFrontF >= proxMax){
-    iteration = iteration + 1;
+  if (proxFrontF >= .9){
+    iteration = iteration + 3;
   }
 
 //  if(proxDiffF >= proxMax){
@@ -436,28 +442,46 @@ void pulseMotors() {
 void armSequence() {
   int servoSpeedOffsetF = 0;
   int servoSpeedOffsetR = 10;
+  R_Servo.writeMicroseconds(neutral);
+  L_Servo.writeMicroseconds(neutral);
 
-  ArmR.writeMicroseconds(1200);
-  ArmL.writeMicroseconds(1200);
-  delay(13630);
-  ArmR.writeMicroseconds(1500);
-  ArmL.writeMicroseconds(1500);  
+  // ArmR.writeMicroseconds(1200);
+  // ArmL.writeMicroseconds(1200);
+  // delay(17000); //13630
+  // ArmR.writeMicroseconds(1500);
+  // ArmL.writeMicroseconds(1500);  
 
   ArmM.writeMicroseconds(1350);
   delay(2000);
+  ArmM.writeMicroseconds(1500);
 
-  ArmR.writeMicroseconds(1800);
-  ArmL.writeMicroseconds(1800);
-  delay(13500);
+  // ArmR.writeMicroseconds(1730);
+  // ArmL.writeMicroseconds(1730);
+  // delay(35000);
+  // ArmR.writeMicroseconds(1800);
+  // ArmL.writeMicroseconds(1800);
+  // delay(20000);
+
+  ArmR.writeMicroseconds(1850);
+  ArmL.writeMicroseconds(1850);
+  delay(15000);
+  ArmR.writeMicroseconds(2000);
+  ArmL.writeMicroseconds(2000);
+  delay(40000-20000);
 
   ArmR.writeMicroseconds(1200);
   ArmL.writeMicroseconds(1200);
-  delay(13630);
+  delay(40000);
   ArmR.writeMicroseconds(1500);
   ArmL.writeMicroseconds(1500);  
+  iteration = 2;
+
+  Forward(2000);
 }
 
 void latchSequence() {
+  R_Servo.writeMicroseconds(neutral);
+  L_Servo.writeMicroseconds(neutral);
   Latch.write(0);
   delay(5000);
 }
@@ -693,4 +717,5 @@ void printSensors() {
   // }
   Serial.println("cx = "+(String)cx);
   Serial.println("hit="+(String)hit);
+  Serial.println(iteration);
 }
