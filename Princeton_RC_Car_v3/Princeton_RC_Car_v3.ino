@@ -20,6 +20,7 @@
   float rWheel = 1500;
   float lWheel = 1500;
   int hit = 0;
+  int turnIt = 0;
 // Define RC Variables
   int Ch1,Ch2,Ch3,Ch4,Ch5,Ch6;
   const int LED = 13;       // Onboard LED location
@@ -116,6 +117,13 @@ void Ch5Check() {
   if(Ch6 < 1600){
   Ch5 = pulseIn(7, HIGH); // Capture pulse width on Channel 5
   if (Ch5 > 1600) {
+    // turnIt++;
+    if(turnIt == 1){
+      R_Servo.writeMicroseconds(1850);
+      L_Servo.writeMicroseconds(1850);
+
+      delay(1125);
+    }
     digitalWrite(LED, HIGH);
     autonomous();
   }
